@@ -91,3 +91,8 @@ add_custom_target(
     COMMAND git config core.hooksPath '.githooks'
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
+
+add_custom_target(
+    format
+    COMMAND ${CMAKE_CURRENT_LIST_DIR}/../util/format.sh
+)
