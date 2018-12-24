@@ -85,3 +85,9 @@ add_custom_target_info(
 # add_dependencies(driver_load builder_load)
 # add_dependencies(driver_unload builder_unload)
 # add_dependencies(driver_quick builder_quick)
+
+add_custom_target(
+    git-hooks
+    COMMAND git config core.hooksPath '.githooks'
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
