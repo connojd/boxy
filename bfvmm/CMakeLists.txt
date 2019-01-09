@@ -22,22 +22,72 @@
 cmake_minimum_required(VERSION 3.6)
 project(boxy C CXX)
 
+# ------------------------------------------------------------------------------
+# Generator expressions
+# ------------------------------------------------------------------------------
+
+set(CXX $<COMPILE_LANGUAGE:CXX>)
+set(X64 $<STREQUAL:${BUILD_TARGET_ARCH},x86_64>)
+set(BUILD $<BOOL:$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>>)
+set(BUILD_INCLUDE $<AND:${CXX},${BUILD}>)
+
+# ------------------------------------------------------------------------------
+# Project
+# ------------------------------------------------------------------------------
+
 init_project(boxy INTERFACE)
+
+target_link_libraries(boxy INTERFACE vmm::eapis)
 target_include_directories(boxy INTERFACE
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/../include
-    ${PROJECT_SOURCE_DIR}/../bfsdk/include
+    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/include>
+    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../include>
+    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../bfsdk/include>
 )
 
+# ------------------------------------------------------------------------------
+# Libraries
+# ------------------------------------------------------------------------------
+
 add_library(boxy_domain)
+add_library(boxy_hve)
+
+target_link_libraries(boxy_domain PUBLIC boxy)
+target_link_libraries(boxy_hve PUBLIC boxy)
 target_sources(boxy_domain PRIVATE src/domain/domain.cpp)
-target_compile_definitions(boxy_domain PUBLIC
-add_subdirectory(domain)
-add_subdirectory(hve)
+target_sources(boxy_hve PRIVATE
+    $<${X64}:src/hve/arch/intel_x64/apic/x2apic.cpp>
+    $<${X64}:src/hve/arch/intel_x64/pci/pci_configuration_space.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/cpuid.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/external_interrupt.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/io_instruction.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/msr.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/vmcall.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmexit/yield.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmcall/domain_op.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmcall/run_op.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vmcall/vcpu_op.cpp>
+    $<${X64}:src/hve/arch/intel_x64/domain.cpp>
+    $<${X64}:src/hve/arch/intel_x64/uart.cpp>
+)
+
+# -----------------------------------------------------------------------------
+# Executable
+# -----------------------------------------------------------------------------
+
+add_executable(boxy_vmm)
+target_link_libraries(boxy_vmm PRIVATE boxy_domain boxy_hve)
+target_sources(boxy_vmm PRIVATE
+    src/main/arch/intel_x64/domain_factory.cpp
+    src/main/arch/intel_x64/vcpu_factory.cpp
+)
 
 # -----------------------------------------------------------------------------
 # Install
 # -----------------------------------------------------------------------------
 
+install(TARGETS boxy_domain DESTINATION lib EXPORT boxy-vmm-targets)
+install(TARGETS boxy_hve DESTINATION lib EXPORT boxy-vmm-targets)
+install(TARGETS boxy_vmm DESTINATION bin EXPORT boxy-vmm-targets)
 install(DIRECTORY include/ DESTINATION include/boxy)
+
 fini_project()
