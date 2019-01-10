@@ -25,6 +25,7 @@
 
 #include <bftypes.h>
 
+#ifndef LINUX_KERNEL
 #pragma pack(push, 1)
 
 // -----------------------------------------------------------------------------
@@ -126,4 +127,5 @@ struct boot_params {
 
 #pragma pack(pop)
 
+#endif
 #endif

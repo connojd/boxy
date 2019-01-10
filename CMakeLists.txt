@@ -42,8 +42,9 @@ include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
 # ------------------------------------------------------------------------------
 
 if(BUILD_VMM)
-    eapis_vmm_extension(
-        boxy_bfvmm
+    add_subproject(
+        boxy vmm
+        DEPENDS eapis
         SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm
     )
 endif()
@@ -52,21 +53,19 @@ endif()
 # bfexec
 # ------------------------------------------------------------------------------
 
-userspace_extension(
-    bfexec
-    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec/src
-    DEPENDS bfintrinsics
-    DEPENDS cxxopts
-)
-
-# ------------------------------------------------------------------------------
-# bflinux
-# ------------------------------------------------------------------------------
-
-if(NOT WIN32 AND NOT CYGWIN)
-    userspace_extension(
-        bflinux
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
-        DEPENDS bfintrinsics
-    )
-endif()
+#userspace_extension(
+#    bfexec
+#    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec/src
+#    DEPENDS bfintrinsics
+#    DEPENDS cxxopts
+#)
+#
+## ------------------------------------------------------------------------------
+## bflinux
+## ------------------------------------------------------------------------------
+#
+#userspace_extension(
+#    bflinux
+#    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
+#    DEPENDS bfintrinsics
+#)
