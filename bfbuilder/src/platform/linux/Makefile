@@ -31,8 +31,7 @@ ifneq ($(KERNELRELEASE),)
 
 	EXTRA_CFLAGS += -DKERNEL
 	EXTRA_CFLAGS += -DLINUX_KERNEL
-	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfsdk/include/
-	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfelf_loader/include/
+	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfutil/include/
 	EXTRA_CFLAGS += -I$(src)/../../../include/
 	EXTRA_CFLAGS += -I$(src)/../../../../bfsdk/include/
 

@@ -68,6 +68,8 @@ target_sources(boxy_hve PRIVATE
     $<${X64}:src/hve/arch/intel_x64/vmcall/vcpu_op.cpp>
     $<${X64}:src/hve/arch/intel_x64/domain.cpp>
     $<${X64}:src/hve/arch/intel_x64/uart.cpp>
+    $<${X64}:src/hve/arch/intel_x64/vcpu.cpp>
+    src/domain/domain.cpp
 )
 
 # -----------------------------------------------------------------------------
