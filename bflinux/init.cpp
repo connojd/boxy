@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	while(1) {
 		time(&rawtime);
 		bfdebug("hello from init: ");
-    	bfdebug(ctime(&rawtime));
+        	bfdebug(ctime(&rawtime));
 
 		sleep(1);
 	}
