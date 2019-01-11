@@ -20,25 +20,34 @@
 # SOFTWARE.
 
 cmake_minimum_required(VERSION 3.6)
-project(bflinux C CXX)
+project(bfexec C CXX)
 
-init_project(bflinux INTERFACE)
-
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-
-add_executable(init)
-target_sources(init PRIVATE init.cpp)
-target_link_libraries(init PRIVATE userspace::bfintrinsics)
-
-add_custom_command(
-    TARGET init POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PREFIXES_DIR}/initrd/
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PREFIXES_DIR}/initrd/sbin
-    COMMAND ${CMAKE_COMMAND} -E copy init ${PREFIXES_DIR}/initrd/sbin/
-    COMMAND ${CMAKE_COMMAND} -E chdir ${PREFIXES_DIR}/initrd/ bash ${BOXY_SOURCE_ROOT_DIR}/bflinux/build.sh
-    VERBATIM
+init_project(bfexec INTERFACE)
+target_include_directories(bfexec INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfvmm/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfsdk/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
 )
 
-install(TARGETS init DESTINATION bin EXPORT bflinux-userspace-targets)
+string(TOLOWER ${BUILD_TARGET_OS} OS)
+
+add_executable(bfexec-binary)
+target_include_directories(bfexec-binary PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src/platform/${OS}>
+)
+target_sources(bfexec-binary PRIVATE
+    src/platform/${OS}/ioctl.cpp
+    src/platform/${OS}/ioctl_private.cpp
+    src/main.cpp
+)
+target_link_libraries(bfexec-binary PRIVATE
+    bfexec
+    userspace::bfintrinsics
+    $<$<OR:$<BOOL:${CYGWIN}>,$<BOOL:${WIN32}>>:setupapi>
+    $<$<BOOL:${UNIX}>:pthread>
+)
+
+set_target_properties(bfexec-binary PROPERTIES OUTPUT_NAME bfexec)
+install(TARGETS bfexec-binary DESTINATION bin EXPORT bfexec-${PREFIX}-targets)
+
 fini_project()
