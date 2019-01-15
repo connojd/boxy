@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 Assured Information Security, Inc.
+# Copyright (C) 2019 Assured Information Security, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ init_project(bfexec INTERFACE)
 target_link_libraries(bfexec INTERFACE ${PREFIX}::bfroot)
 target_include_directories(bfexec INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfvmm/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfsdk/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfutil/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
 )
 

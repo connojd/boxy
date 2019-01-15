@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 Assured Information Security, Inc.
+# Copyright (C) 2019 Assured Information Security, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,7 @@ target_link_libraries(boxy INTERFACE vmm::eapis)
 target_include_directories(boxy INTERFACE
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/include>
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../include>
-    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../bfsdk/include>
+    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../bfutil/include>
 )
 
 # ------------------------------------------------------------------------------

@@ -127,5 +127,9 @@ struct boot_params {
 
 #pragma pack(pop)
 
+#else
+
+#include <uapi/asm/bootparam.h>
+
 #endif
 #endif

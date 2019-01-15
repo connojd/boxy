@@ -63,9 +63,9 @@ set(BOXY_SOURCE_BFLINUX_DIR ${BOXY_SOURCE_ROOT_DIR}/bflinux
     "BOXY bflinux source dir"
 )
 
-set(BOXY_SOURCE_BFSDK_DIR ${BOXY_SOURCE_ROOT_DIR}/bfsdk
+set(BOXY_SOURCE_BFUTIL_DIR ${BOXY_SOURCE_ROOT_DIR}/bfutil
     CACHE INTERNAL
-    "BOXY bfsdk source dir"
+    "BOXY bfutil source dir"
 )
 
 set(BOXY_SOURCE_BFVMM_DIR ${BOXY_SOURCE_ROOT_DIR}/bfvmm

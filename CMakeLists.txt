@@ -47,6 +47,11 @@ if(BUILD_VMM)
         DEPENDS eapis
         SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm
     )
+    add_subproject(
+        boxy_bfutil vmm
+        DEPENDS bfutil
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfutil
+    )
 endif()
 
 # ------------------------------------------------------------------------------
@@ -55,7 +60,6 @@ endif()
 
 add_subproject(
     bfexec userspace
-    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec
     DEPENDS bfintrinsics
 )
 
@@ -65,6 +69,15 @@ add_subproject(
 
 add_subproject(
     bflinux userspace
-    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
     DEPENDS bfintrinsics
+)
+
+# ------------------------------------------------------------------------------
+# bfutil
+# ------------------------------------------------------------------------------
+
+add_subproject(
+    boxy_bfutil userspace
+    DEPENDS bfutil
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfutil
 )
