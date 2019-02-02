@@ -44,7 +44,7 @@ include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
 if(BUILD_VMM)
     add_subproject(
         boxy vmm
-        DEPENDS eapis
+        DEPENDS bfvmm
         SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm
     )
     add_subproject(
@@ -61,6 +61,7 @@ endif()
 add_subproject(
     bfexec userspace
     DEPENDS bfintrinsics
+    DEPENDS cxxopts
 )
 
 # ------------------------------------------------------------------------------

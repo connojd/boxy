@@ -23,6 +23,7 @@ cmake_minimum_required(VERSION 3.6)
 project(bfexec C CXX)
 
 init_project(bfexec INTERFACE)
+
 target_link_libraries(bfexec INTERFACE ${PREFIX}::bfroot)
 target_include_directories(bfexec INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../bfvmm/include>

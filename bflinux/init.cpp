@@ -33,9 +33,7 @@ int main(void)
 
 	while(1) {
 		time(&rawtime);
-		bfdebug("hello from init: ");
-        	bfdebug(ctime(&rawtime));
-
+		printf("hello from init: %s", ctime(&rawtime));
 		sleep(1);
 	}
 }

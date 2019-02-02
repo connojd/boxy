@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "cxxopts.hpp"
+#include <cxxopts.hpp>
 
 using args_type = cxxopts::ParseResult;
 

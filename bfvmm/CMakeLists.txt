@@ -37,7 +37,7 @@ set(BUILD_INCLUDE $<AND:${CXX},${BUILD}>)
 
 init_project(boxy INTERFACE)
 
-target_link_libraries(boxy INTERFACE vmm::eapis)
+target_link_libraries(boxy INTERFACE vmm::bfvmm)
 target_include_directories(boxy INTERFACE
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/include>
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../include>
