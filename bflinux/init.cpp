@@ -19,25 +19,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdint.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <time.h>
 
-extern "C" uint64_t _vmcall(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4) noexcept;
-
-void
-bfdebug(const char *str)
-{
-	int i = 0;
-	while(str[i] != 0) {
-		_vmcall(0xBF04000000000000, 1, 0x3f8, str[i]);
-		i++;
-	}
-}
-
-int main(int argc, char *argv[])
+int main(void)
 {
 	time_t rawtime;
+
+	if (freopen("/dev/ttyprintk", "w", stdout) == 0) {
+		while(1);
+	}
 
 	while(1) {
 		time(&rawtime);
@@ -46,6 +38,4 @@ int main(int argc, char *argv[])
 
 		sleep(1);
 	}
-
-	return 0;
 }
