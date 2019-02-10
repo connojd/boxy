@@ -35,24 +35,24 @@ include(${BOXY_SOURCE_CMAKE_DIR}/targets.cmake)
 # General Dependencies
 # ------------------------------------------------------------------------------
 
-include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
-
-# ------------------------------------------------------------------------------
-# VMM
-# ------------------------------------------------------------------------------
-
-if(ENABLE_BUILD_VMM)
-    vmm_extension(
-        boxy_bfvmm
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src
-    )
-
-    vmm_extension(
-        boxy_bfvmm_main
-        DEPENDS boxy_bfvmm
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src/main
-    )
-endif()
+#include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
+#
+## ------------------------------------------------------------------------------
+## VMM
+## ------------------------------------------------------------------------------
+#
+#if(ENABLE_BUILD_VMM)
+#    vmm_extension(
+#        boxy_bfvmm
+#        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src
+#    )
+#
+#    vmm_extension(
+#        boxy_bfvmm_main
+#        DEPENDS boxy_bfvmm
+#        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src/main
+#    )
+#endif()
 
 # ------------------------------------------------------------------------------
 # bfexec
@@ -69,10 +69,10 @@ userspace_extension(
 # bflinux
 # ------------------------------------------------------------------------------
 
-if(NOT WIN32 AND NOT CYGWIN)
-    userspace_extension(
-        bflinux
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
-        DEPENDS bfintrinsics
-    )
-endif()
+#if(NOT WIN32 AND NOT CYGWIN)
+#    userspace_extension(
+#        bflinux
+#        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
+#        DEPENDS bfintrinsics
+#    )
+#endif()
