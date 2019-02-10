@@ -26,6 +26,7 @@ include(${SOURCE_CMAKE_DIR}/project.cmake)
 init_project(
     INCLUDES ${CMAKE_CURRENT_LIST_DIR}/../../bfvmm/include
     INCLUDES ${CMAKE_CURRENT_LIST_DIR}/../../bfsdk/include
+    INCLUDES ${CMAKE_CURRENT_LIST_DIR}/../../bfbuilder/include
     INCLUDES ${CMAKE_CURRENT_LIST_DIR}/../include
 )
 
