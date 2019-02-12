@@ -39,6 +39,7 @@ if(${BUILD_TARGET_ARCH} STREQUAL "x86_64")
 
     if(${BUILD_XENPVH})
         list(APPEND SOURCES
+            arch/intel_x64/iommu.cpp
             arch/intel_x64/xen/evtchn_op.cpp
             arch/intel_x64/xen/gnttab_op.cpp
             #            arch/intel_x64/xen/xen_op.cpp
