@@ -30,7 +30,7 @@
 
 static bool
 cpuid_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     vcpu->halt("cpuid_handler executed. unsupported!!!");
 
@@ -40,7 +40,7 @@ cpuid_handler(
 
 static bool
 rdmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     vcpu->halt("rdmsr_handler executed. unsupported!!!");
 
@@ -50,7 +50,7 @@ rdmsr_handler(
 
 static bool
 wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     vcpu->halt("wrmsr_handler executed. unsupported!!!");
 
@@ -60,7 +60,7 @@ wrmsr_handler(
 
 static bool
 io_instruction_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     vcpu->halt("io_instruction_handler executed. unsupported!!!");
 
@@ -70,7 +70,7 @@ io_instruction_handler(
 
 static bool
 ept_violation_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     vcpu->halt("ept_violation_handler executed. unsupported!!!");
 

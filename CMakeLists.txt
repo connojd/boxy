@@ -36,23 +36,23 @@ include(${BOXY_SOURCE_CMAKE_DIR}/targets.cmake)
 # ------------------------------------------------------------------------------
 
 #include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
-#
-## ------------------------------------------------------------------------------
-## VMM
-## ------------------------------------------------------------------------------
-#
-#if(ENABLE_BUILD_VMM)
-#    vmm_extension(
-#        boxy_bfvmm
-#        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src
-#    )
-#
-#    vmm_extension(
-#        boxy_bfvmm_main
-#        DEPENDS boxy_bfvmm
-#        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src/main
-#    )
-#endif()
+
+# ------------------------------------------------------------------------------
+# VMM
+# ------------------------------------------------------------------------------
+
+if(ENABLE_BUILD_VMM)
+    vmm_extension(
+        boxy_bfvmm
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src
+    )
+
+    vmm_extension(
+        boxy_bfvmm_main
+        DEPENDS boxy_bfvmm
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src/main
+    )
+endif()
 
 # ------------------------------------------------------------------------------
 # bfexec

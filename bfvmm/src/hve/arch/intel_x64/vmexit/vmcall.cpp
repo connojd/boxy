@@ -52,7 +52,7 @@ vmcall_handler::add_handler(
 // -----------------------------------------------------------------------------
 
 static bool
-vmcall_error(gsl::not_null<vcpu *> vcpu, const std::string &str)
+vmcall_error(vcpu_t *vcpu, const std::string &str)
 {
     bfdebug_transaction(0, [&](std::string * msg) {
 
@@ -72,7 +72,7 @@ vmcall_error(gsl::not_null<vcpu *> vcpu, const std::string &str)
         }
     });
 
-    if (vcpu->is_domU()) {
+    if (vcpu_cast(vcpu)->is_domU()) {
         vcpu->halt(str);
     }
 
@@ -81,7 +81,7 @@ vmcall_error(gsl::not_null<vcpu *> vcpu, const std::string &str)
 }
 
 bool
-vmcall_handler::handle(gsl::not_null<vcpu_t *> vcpu)
+vmcall_handler::handle(vcpu_t *vcpu)
 {
     auto ___ = gsl::finally([&] {
         vcpu->load();

@@ -96,7 +96,7 @@ public:
 
     /// @cond
 
-    bool handle(gsl::not_null<vcpu_t *> vcpu);
+    bool handle(vcpu_t *vcpu);
 
     /// @endcond
 

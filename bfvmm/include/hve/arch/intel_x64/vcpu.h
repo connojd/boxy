@@ -352,7 +352,7 @@ private:
     g_vcm->get<boxy::intel_x64::vcpu *>(a, __FILE__ ": invalid boxy vcpuid")
 
 #define vcpu_cast(a) \
-    static_cast<boxy::intel_x64::vcpu *>(a.get())
+    static_cast<boxy::intel_x64::vcpu *>(a)
 
 inline bfobject world_switch;
 
