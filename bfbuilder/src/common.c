@@ -712,11 +712,11 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
     vm->file_type = VM_FILE_VMLINUX;
     vm->exec_mode = VM_EXEC_XENPVH;
 
+    vm->elf_bin.start_addr = (char *)(uintptr_t)vm->load_gpa;
     vm->elf_bin.file = args->image;
     vm->elf_bin.file_size = args->image_size;
     vm->elf_bin.exec = 0;
     vm->elf_bin.exec_size = args->ram;
-    vm->elf_bin.start_addr = (char *)(uintptr_t)vm->load_gpa;
 
     // Copy the kernel ELF image into elf_bin.exec
     //
@@ -724,6 +724,9 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
     if (ret != BF_SUCCESS) {
         return ret;
     }
+
+    vm->size = args->ram;
+    vm->addr = vm->elf_bin.exec;
 
     // Copy the initrd next to the kernel
     //
@@ -744,7 +747,7 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
     ret |= donate_buffer(vm,
                          vm->elf_bin.exec,
                          vm->load_gpa,
-                         args->ram);
+                         vm->size);
 
     return ret;
 }
@@ -811,6 +814,8 @@ static status_t
 setup_reserved_free(struct vm_t *vm)
 {
     status_t ret = SUCCESS;
+    uint64_t addr = 0;
+    uint64_t size = 0;
 
     /**
      * We are not required to map in reserved ranges, only RAM ranges. The
@@ -826,8 +831,15 @@ setup_reserved_free(struct vm_t *vm)
         return FAILURE;
     }
 
-    ret = donate_page_to_page_range(
-        vm, vm->zero_page, RESERVED1_ADDR, RESERVED1_SIZE);
+    addr = RESERVED1_ADDR;
+    size = RESERVED1_SIZE;
+
+    if (vm->exec_mode == VM_EXEC_XENPVH) {
+        addr += PVH_PAGES_SIZE;
+        size -= PVH_PAGES_SIZE; // increase by number of bytes for PVH pages
+    }
+
+    ret = donate_page_to_page_range(vm, vm->zero_page, addr, size);
     if (ret != SUCCESS) {
         return ret;
     }
@@ -1052,8 +1064,9 @@ common_destroy(uint64_t domainid)
     platform_free_rw(vm->madt, BAREFLANK_PAGE_SIZE);
     platform_free_rw(vm->fadt, BAREFLANK_PAGE_SIZE);
     platform_free_rw(vm->dsdt, BAREFLANK_PAGE_SIZE);
-    // TODO free for pvh
-    //platform_free_rw(vm->addr, vm->size);
+    platform_free_rw(vm->addr, vm->size);
+
+    // TODO free PVH specific stuff
 
     release_vm(vm);
     return SUCCESS;

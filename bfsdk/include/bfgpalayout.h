@@ -82,8 +82,8 @@ enum e820_type {
 #define BIOS_RAM_ADDR           0x0
 #define BIOS_RAM_SIZE           0xE8000
 
-#define RESERVED1_ADDR          0xEE000
-#define RESERVED1_SIZE          (0xF0000 - 0xEE000)
+#define RESERVED1_ADDR          0xEB000
+#define RESERVED1_SIZE          (0xF0000 - 0xEB000)
 
 #define RESERVED2_ADDR          0xF5000
 
@@ -104,6 +104,7 @@ enum e820_type {
 #define PVH_START_INFO_GPA      0xEB000
 #define PVH_CONSOLE_GPA         0xEC000
 #define PVH_MODLIST_GPA         0xED000
+#define PVH_PAGES_SIZE          (3 * 0x1000)
 
 int64_t
 add_e820_entry(void *vm, uint64_t saddr, uint64_t eaddr, uint32_t type);
