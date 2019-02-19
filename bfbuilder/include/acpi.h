@@ -205,7 +205,7 @@ struct dsdt_t {
     struct acpi_header_t    header;                         ///< Common ACPI table header
 };
 
-typedef struct {
+typedef struct mcfg_entry_t {
     uint64_t base;
     uint16_t segment;
     uint8_t start_bus;
@@ -213,7 +213,7 @@ typedef struct {
     uint32_t rsvd;
 } __attribute__((packed)) mcfg_entry_t;
 
-typedef struct {
+typedef struct mcfg_t {
     char signature[4];
     uint32_t length;
     uint8_t revision;
@@ -431,17 +431,17 @@ setup_mcfg(struct mcfg_t *mcfg)
         .oemid = {'A', 'I', 'S', ' ', ' ', ' '},
         .oemtableid = {'n', 'o', 'n', 'e', ' ', ' ', ' ', ' '},
         .oemrevision = OEMREVISION,
-        .creatorid = {'A', 'I', 'S', ' '};
-        .creatorrevision = 0;
-        .entry[0].base = 0xF8000000;
-        .entry[0].segment = 0;
-        .entry[0].start_bus = 2;
-        .entry[0].end_bus = 2;
-        .entry[0].rsvd = 0;
+        .creatorid = {'A', 'I', 'S', ' '},
+        .creatorrevision = 0,
+        .entry[0].base = 0xF8000000,
+        .entry[0].segment = 0,
+        .entry[0].start_bus = 2,
+        .entry[0].end_bus = 2,
+        .entry[0].rsvd = 0
     };
 
     *mcfg = s_mcfg;
-    s_mcfg->csum = acpi_checksum(mcfg, mcfg->length);
+    mcfg->csum = acpi_checksum(mcfg, mcfg->length);
 }
 
 #pragma pack(pop)
