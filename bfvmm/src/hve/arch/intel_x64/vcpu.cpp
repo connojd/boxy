@@ -253,6 +253,10 @@ vcpu::apic_timer_vector()
 //------------------------------------------------------------------------------
 
 void
+vcpu::set_exec_mode(uint64_t exec_mode)
+{ m_exec_mode = exec_mode; }
+
+void
 vcpu::setup_default_controls()
 {
     using namespace vmcs_n;

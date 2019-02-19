@@ -324,7 +324,10 @@ setup_cmdline(struct vm_t *vm, struct create_vm_args *args)
         return ret;
     }
 
-    vm->params->hdr.cmd_line_ptr = COMMAND_LINE_PAGE_GPA;
+    if (vm->exec_mode == VM_EXEC_NATIVE) {
+        vm->params->hdr.cmd_line_ptr = COMMAND_LINE_PAGE_GPA;
+    }
+
     return SUCCESS;
 }
 

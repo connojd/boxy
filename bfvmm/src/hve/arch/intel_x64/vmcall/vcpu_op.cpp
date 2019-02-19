@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <bfbuilderinterface.h>
+
 #include <hve/arch/intel_x64/vcpu.h>
 #include <hve/arch/intel_x64/domain.h>
 #include <hve/arch/intel_x64/vmcall/vcpu_op.h>
@@ -79,6 +81,37 @@ vmcall_vcpu_op_handler::vcpu_op__destroy_vcpu(
     })
 }
 
+void
+vmcall_vcpu_op_handler::vcpu_op__set_exec_mode(
+    gsl::not_null<vcpu *> vcpu)
+{
+    try {
+        auto child_vcpu = get_vcpu(vcpu->rbx());
+        child_vcpu->set_exec_mode(vcpu->rcx());
+
+        switch (vcpu->rcx()) {
+        case VM_EXEC_NATIVE:
+            bfdebug_info(0, "Set VM exec mode: native");
+            break;
+
+        case VM_EXEC_XENPVH:
+            bfdebug_info(0, "Set VM exec mode: xenpvh");
+            break;
+
+        default:
+            bferror_nhex(0, "Unknown VM exec mode:", vcpu->rcx());
+            vcpu->set_rax(FAILURE);
+            return;
+        }
+
+        vcpu->set_rax(SUCCESS);
+    }
+    catchall({
+        vcpu->set_rax(FAILURE);
+    })
+}
+
+
 bool
 vmcall_vcpu_op_handler::dispatch(
     gsl::not_null<vcpu *> vcpu)
@@ -98,6 +131,10 @@ vmcall_vcpu_op_handler::dispatch(
 
         case __enum_vcpu_op__destroy_vcpu:
             this->vcpu_op__destroy_vcpu(vcpu);
+            return true;
+
+        case __enum_vcpu_op__set_exec_mode:
+            this->vcpu_op__set_exec_mode(vcpu);
             return true;
 
         default:

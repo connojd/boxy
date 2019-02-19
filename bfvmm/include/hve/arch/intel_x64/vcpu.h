@@ -287,6 +287,17 @@ public:
     ///
     uint8_t apic_timer_vector();
 
+    /// Set exec mode
+    ///
+    /// @expects
+    /// @ensures
+    ///
+    /// Set the execution mode of the vcpu.
+    ///
+    /// @param the mode this guest is running with
+    ///
+    void set_exec_mode(uint64_t mode);
+
 private:
 
     void setup_default_controls();
@@ -314,6 +325,7 @@ private:
 
     bool m_killed{};
     vcpu *m_parent_vcpu{};
+    uint64_t m_exec_mode;
 };
 
 }

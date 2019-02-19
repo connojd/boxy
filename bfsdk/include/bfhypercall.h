@@ -555,6 +555,7 @@ __domain_op__set_reg(ldtr_access_rights)
 #define __enum_vcpu_op__create_vcpu 0xBF03000000000100
 #define __enum_vcpu_op__kill_vcpu 0xBF03000000000101
 #define __enum_vcpu_op__destroy_vcpu 0xBF03000000000102
+#define __enum_vcpu_op__set_exec_mode 0xBF03000000000103
 
 static inline vcpuid_t
 __vcpu_op__create_vcpu(domainid_t domainid)
@@ -585,6 +586,17 @@ __vcpu_op__destroy_vcpu(vcpuid_t vcpuid)
         __enum_vcpu_op__destroy_vcpu,
         vcpuid,
         0,
+        0
+    );
+}
+
+static inline vcpuid_t
+__vcpu_op__set_exec_mode(vcpuid_t vcpuid, uint64_t exec_mode)
+{
+    return _vmcall(
+        __enum_vcpu_op__set_exec_mode,
+        vcpuid,
+        exec_mode,
         0
     );
 }
