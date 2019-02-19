@@ -111,7 +111,6 @@ vmcall_vcpu_op_handler::vcpu_op__set_exec_mode(
     })
 }
 
-
 bool
 vmcall_vcpu_op_handler::dispatch(
     gsl::not_null<vcpu *> vcpu)

@@ -61,6 +61,22 @@
 // Definition
 //------------------------------------------------------------------------------
 
+#ifndef PCI_PT_BUS
+#define PCI_PT_BUS 0
+#endif
+
+#ifndef PCI_PT_DEV
+#define PCI_PT_DEV 0x14
+#endif
+
+#ifndef PCI_PT_FUN
+#define PCI_PT_FUN 0x03
+#endif
+
+inline uint32_t g_pci_pt_bus = PCI_PT_BUS;
+inline uint32_t g_pci_pt_dev = PCI_PT_DEV;
+inline uint32_t g_pci_pt_fun = PCI_PT_FUN;
+
 namespace boxy::intel_x64
 {
 
@@ -294,7 +310,7 @@ public:
     ///
     /// Set the execution mode of the vcpu.
     ///
-    /// @param the mode this guest is running with
+    /// @param mode the mode this guest is running with
     ///
     void set_exec_mode(uint64_t mode);
 

@@ -82,6 +82,13 @@ ept_violation_handler(
 // Implementation
 //------------------------------------------------------------------------------
 
+namespace vtd::visr_device {
+void enable(gsl::not_null<vcpu_t *> vcpu,
+            uint32_t bus,
+            uint32_t dev,
+            uint32_t fun);
+}
+
 namespace boxy::intel_x64
 {
 
@@ -124,7 +131,9 @@ vcpu::vcpu(
 
 void
 vcpu::write_dom0_guest_state(domain *domain)
-{ }
+{
+    vtd::visr_device::enable(this, g_pci_pt_bus, g_pci_pt_dev, g_pci_pt_fun);
+}
 
 void
 vcpu::write_domU_guest_state(domain *domain)

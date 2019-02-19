@@ -35,17 +35,12 @@ if(${BUILD_TARGET_ARCH} STREQUAL "x86_64")
         arch/intel_x64/domain.cpp
         arch/intel_x64/uart.cpp
         arch/intel_x64/vcpu.cpp
+        arch/intel_x64/iommu.cpp
+        arch/intel_x64/visr.cpp
+        arch/intel_x64/xen/evtchn_op.cpp
+        arch/intel_x64/xen/gnttab_op.cpp
+        #            arch/intel_x64/xen/xen_op.cpp
     )
-
-    if(${BUILD_XENPVH})
-        list(APPEND SOURCES
-            arch/intel_x64/iommu.cpp
-            arch/intel_x64/visr.cpp
-            arch/intel_x64/xen/evtchn_op.cpp
-            arch/intel_x64/xen/gnttab_op.cpp
-            #            arch/intel_x64/xen/xen_op.cpp
-        )
-    endif()
 
 elseif(${BUILD_TARGET_ARCH} STREQUAL "aarch64")
     message(WARNING "Unimplemented")

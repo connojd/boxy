@@ -574,11 +574,10 @@ forward_interrupt_to_ndvm(
 
 void
 enable(
-    gsl::not_null<bfvmm::intel_x64::vcpu *> vcpu,
+    gsl::not_null<vcpu_t *> vcpu,
     uint32_t bus,
     uint32_t device,
-    uint32_t function
-)
+    uint32_t function)
 {
     // Make sure there is a real PCI device at the address we want to emulate
     // uint32_t address = 0x80000000 | bus << 16 | device << 11 | function << 8;

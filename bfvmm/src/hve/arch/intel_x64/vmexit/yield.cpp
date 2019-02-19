@@ -63,7 +63,7 @@ yield_handler::yield_handler(
         return;
     }
 
-    m_tsc_freq = ia32_platform_info::max_nonturbo_ratio::get() * 133330;
+    m_tsc_freq = platform_info::max_nonturbo_ratio::get() * 133330;
     m_pet_shift = ia32_vmx_misc::preemption_timer_decrement::get();
 
     if (m_tsc_freq == 0) {
