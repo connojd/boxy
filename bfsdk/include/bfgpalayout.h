@@ -79,11 +79,17 @@ enum e820_type {
  * not have to all be mapped). Unusable memory cannot not be mapped.
  */
 
+#define PVH_LOAD_GPA            0x1000000
+#define PVH_START_INFO_GPA      0xED000
+#define PVH_CONSOLE_GPA         0xEE000
+#define PVH_MODLIST_GPA         0xEF000
+#define PVH_PAGES_SIZE          (3 * 0x1000)
+
 #define BIOS_RAM_ADDR           0x0
 #define BIOS_RAM_SIZE           0xE8000
 
-#define RESERVED1_ADDR          0xEB000
-#define RESERVED1_SIZE          (0xF0000 - 0xEB000)
+#define RESERVED1_ADDR          PVH_START_INFO_GPA
+#define RESERVED1_SIZE          (0xF0000 - PVH_START_INFO_GPA)
 
 #define RESERVED2_ADDR          0xF6000
 
@@ -103,12 +109,6 @@ enum e820_type {
 
 #define XAPIC_GPA               0xFEE00000
 #define NATIVE_LOAD_GPA         0x100000
-
-#define PVH_LOAD_GPA            0x1000000
-#define PVH_START_INFO_GPA      0xED000
-#define PVH_CONSOLE_GPA         0xEE000
-#define PVH_MODLIST_GPA         0xEF000
-#define PVH_PAGES_SIZE          (3 * 0x1000)
 
 int64_t
 add_e820_entry(void *vm, uint64_t saddr, uint64_t eaddr, uint32_t type);
