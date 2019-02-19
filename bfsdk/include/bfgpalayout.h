@@ -85,25 +85,29 @@ enum e820_type {
 #define RESERVED1_ADDR          0xEB000
 #define RESERVED1_SIZE          (0xF0000 - 0xEB000)
 
-#define RESERVED2_ADDR          0xF5000
+#define RESERVED2_ADDR          0xF6000
 
 #define BOOT_PARAMS_PAGE_GPA    0xE8000
 #define COMMAND_LINE_PAGE_GPA   0xE9000
+
 #define INITIAL_GDT_GPA         0xEA000
+#define INITIAL_IDT_GPA         0xEB000
+#define INITIAL_TSS_GPA         0xEC000
 
 #define ACPI_RSDP_GPA           0xF0000
 #define ACPI_XSDT_GPA           0xF1000
 #define ACPI_MADT_GPA           0xF2000
 #define ACPI_FADT_GPA           0xF3000
 #define ACPI_DSDT_GPA           0xF4000
+#define ACPI_MCFG_GPA           0xF5000
 
 #define XAPIC_GPA               0xFEE00000
 #define NATIVE_LOAD_GPA         0x100000
 
 #define PVH_LOAD_GPA            0x1000000
-#define PVH_START_INFO_GPA      0xEB000
-#define PVH_CONSOLE_GPA         0xEC000
-#define PVH_MODLIST_GPA         0xED000
+#define PVH_START_INFO_GPA      0xED000
+#define PVH_CONSOLE_GPA         0xEE000
+#define PVH_MODLIST_GPA         0xEF000
 #define PVH_PAGES_SIZE          (3 * 0x1000)
 
 int64_t

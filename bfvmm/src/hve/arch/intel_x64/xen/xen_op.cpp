@@ -118,141 +118,139 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 {
     using namespace vmcs_n;
 
-    vcpu->add_run_delegate(
-        bfvmm::vcpu::run_delegate_t::create<xen_op_handler, &xen_op_handler::run_delegate>(this)
-    );
+//    vcpu->add_run_delegate(
+//        bfvmm::vcpu::run_delegate_t::create<xen_op_handler, &xen_op_handler::run_delegate>(this)
+//    );
+//
+//    vcpu->add_exit_handler(
+//        handler_delegate_t::create<xen_op_handler, &xen_op_handler::exit_handler>(this)
+//    );
+//
+//    EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
+//    EMULATE_WRMSR(xen_msr_debug_ndec, xen_debug_ndec_wrmsr_handler);
+//    EMULATE_WRMSR(xen_msr_debug_nhex, xen_debug_nhex_wrmsr_handler);
+//
+//    EMULATE_CPUID(XEN_CPUID_LEAF(0), xen_cpuid_leaf1_handler);
+//    EMULATE_CPUID(XEN_CPUID_LEAF(1), xen_cpuid_leaf2_handler);
+//    EMULATE_CPUID(XEN_CPUID_LEAF(2), xen_cpuid_leaf3_handler);
+//    EMULATE_CPUID(XEN_CPUID_LEAF(4), xen_cpuid_leaf5_handler);
+//
+//    ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
+//    ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
+//    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
+//    ADD_VMCALL_HANDLER(HYPERVISOR_hvm_op);
+//    ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
+//    ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
 
-    vcpu->add_exit_handler(
-        handler_delegate_t::create<xen_op_handler, &xen_op_handler::exit_handler>(this)
-    );
+    m_vcpu->trap_on_all_io_instruction_accesses();
+    m_vcpu->trap_on_all_rdmsr_accesses();
+    m_vcpu->trap_on_all_wrmsr_accesses();
 
-    EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
-    EMULATE_WRMSR(xen_msr_debug_ndec, xen_debug_ndec_wrmsr_handler);
-    EMULATE_WRMSR(xen_msr_debug_nhex, xen_debug_nhex_wrmsr_handler);
+//    this->isolate_msr(::x64::msrs::ia32_star::addr);
+//    this->isolate_msr(::x64::msrs::ia32_lstar::addr);
+//    this->isolate_msr(::x64::msrs::ia32_cstar::addr);
+//    this->isolate_msr(::x64::msrs::ia32_fmask::addr);
+//    this->isolate_msr(::x64::msrs::ia32_kernel_gs_base::addr);
 
-    EMULATE_CPUID(XEN_CPUID_LEAF(0), xen_cpuid_leaf1_handler);
-    EMULATE_CPUID(XEN_CPUID_LEAF(1), xen_cpuid_leaf2_handler);
-    EMULATE_CPUID(XEN_CPUID_LEAF(2), xen_cpuid_leaf3_handler);
-    EMULATE_CPUID(XEN_CPUID_LEAF(4), xen_cpuid_leaf5_handler);
-
-    ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
-    ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
-    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
-    ADD_VMCALL_HANDLER(HYPERVISOR_hvm_op);
-    ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
-    ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
-
-    if (m_vcpu->is_domU()) {
-        m_vcpu->trap_on_all_io_instruction_accesses();
-        m_vcpu->trap_on_all_rdmsr_accesses();
-        m_vcpu->trap_on_all_wrmsr_accesses();
-    }
-
-    this->isolate_msr(::x64::msrs::ia32_star::addr);
-    this->isolate_msr(::x64::msrs::ia32_lstar::addr);
-    this->isolate_msr(::x64::msrs::ia32_cstar::addr);
-    this->isolate_msr(::x64::msrs::ia32_fmask::addr);
-    this->isolate_msr(::x64::msrs::ia32_kernel_gs_base::addr);
-
-    if (m_vcpu->is_dom0()) {
-        ADD_WRMSR_HANDLER(::intel_x64::msrs::ia32_apic_base::addr, dom0_apic_base);
-        return;
-    }
+//    if (m_vcpu->is_dom0()) {
+//        ADD_WRMSR_HANDLER(::intel_x64::msrs::ia32_apic_base::addr, dom0_apic_base);
+//        return;
+//    }
 
     domain->setup_vcpu_uarts(m_vcpu);
-
-    m_vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
-
-    // We effectively pass this through to the guest already
-    // through the bfvmm::intel_x64::timer::tsc_freq_MHz
-    m_vcpu->pass_through_msr_access(::intel_x64::msrs::platform_info::addr);
-
-    EMULATE_RDMSR(0x34, rdmsr_zero_handler);
-    EMULATE_RDMSR(0x64E, rdmsr_zero_handler);
-
-    EMULATE_RDMSR(0x140, rdmsr_zero_handler);
-    EMULATE_WRMSR(0x140, wrmsr_ignore_handler);
-
-    EMULATE_RDMSR(::intel_x64::msrs::ia32_apic_base::addr,
-                  ia32_apic_base_rdmsr_handler);
-
-    EMULATE_WRMSR(::intel_x64::msrs::ia32_apic_base::addr,
-                  ia32_apic_base_wrmsr_handler);
-
-    ADD_RDMSR_HANDLER(0x1A0, ia32_misc_enable_rdmsr_handler);       // TODO: use namespace name
-    EMULATE_WRMSR(0x1A0, ia32_misc_enable_wrmsr_handler);           // TODO: use namespace name
-    EMULATE_WRMSR(0x6e0, handle_tsc_deadline);
-
-    ADD_CPUID_HANDLER(0x0, cpuid_pass_through_handler);
-    ADD_CPUID_HANDLER(0x1, cpuid_leaf1_handler);
-    ADD_CPUID_HANDLER(0x2, cpuid_pass_through_handler);             // Passthrough cache info
-    ADD_CPUID_HANDLER(0x4, cpuid_leaf4_handler);
-    ADD_CPUID_HANDLER(0x6, cpuid_leaf6_handler);
-    ADD_CPUID_HANDLER(0x7, cpuid_leaf7_handler);
-
-    EMULATE_CPUID(0xA, cpuid_zero_handler);
-    EMULATE_CPUID(0xB, cpuid_zero_handler);
-    EMULATE_CPUID(0xD, cpuid_zero_handler);
-    EMULATE_CPUID(0xF, cpuid_zero_handler);
-    EMULATE_CPUID(0x10, cpuid_zero_handler);
-
-    ADD_CPUID_HANDLER(0x15, cpuid_leaf15_handler);            // TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x16, cpuid_pass_through_handler);            // TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x80000000, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x80000001, cpuid_leaf80000001_handler);      // TODO: 0 reserved bits
-
-    ADD_CPUID_HANDLER(0x80000002, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x80000003, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x80000004, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-
-    ADD_CPUID_HANDLER(0x80000007, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-    ADD_CPUID_HANDLER(0x80000008, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-
-    EMULATE_IO_INSTRUCTION(0xCF8, io_cf8_in, io_cf8_out);
-    //EMULATE_IO_INSTRUCTION(0xCFA, io_ones_handler, io_ignore_handler);
-    EMULATE_IO_INSTRUCTION(0xCFB, io_cfb_in, io_cfb_out);
-    EMULATE_IO_INSTRUCTION(0xCFC, io_cfc_in, io_cfc_out);
-    EMULATE_IO_INSTRUCTION(0xCFD, io_cfd_in, io_cfd_out);
-    EMULATE_IO_INSTRUCTION(0xCFE, io_cfe_in, io_cfe_out);
-    //EMULATE_IO_INSTRUCTION(0xCFF, io_ones_handler, io_ignore_handler);
-
-    /// ACPI SCI interrupt trigger mode
-    EMULATE_IO_INSTRUCTION(0x4D0, io_zero_handler, io_ignore_handler);
-    EMULATE_IO_INSTRUCTION(0x4D1, io_zero_handler, io_ignore_handler);
-
-    /// NMI assertion
-    EMULATE_IO_INSTRUCTION(0x70, io_zero_handler, io_ignore_handler);
-    EMULATE_IO_INSTRUCTION(0x71, io_zero_handler, io_ignore_handler);
-
-    /// Ports used for TSC calibration against the PIT. See
-    /// arch/x86/kernel/tsc.c:pit_calibrate_tsc for detail.
-    /// Note that these ports are accessed on the Intel NUC.
-    ///
-    m_vcpu->pass_through_io_accesses(0x42);
-    m_vcpu->pass_through_io_accesses(0x43);
-    m_vcpu->pass_through_io_accesses(0x61);
-
-    this->register_unplug_quirk();
-
-    ADD_EPT_WRITE_HANDLER(xapic_handle_write);
-
-    m_pet_shift = ::intel_x64::msrs::ia32_vmx_misc::preemption_timer_decrement::get();
-    m_tsc_freq_khz = tsc_frequency();
-
-    m_vcpu->add_handler(
-        exit_reason::basic_exit_reason::hlt,
-        ::handler_delegate_t::create<xen_op_handler, &xen_op_handler::handle_hlt>(this)
-    );
-
-    this->pci_init_caps();
-    this->pci_init_bars();
-    this->pci_init_nic();
+//
+//    m_vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
+//
+//    // We effectively pass this through to the guest already
+//    // through the bfvmm::intel_x64::timer::tsc_freq_MHz
+//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::platform_info::addr);
+//
+//    EMULATE_RDMSR(0x34, rdmsr_zero_handler);
+//    EMULATE_RDMSR(0x64E, rdmsr_zero_handler);
+//
+//    EMULATE_RDMSR(0x140, rdmsr_zero_handler);
+//    EMULATE_WRMSR(0x140, wrmsr_ignore_handler);
+//
+//    EMULATE_RDMSR(::intel_x64::msrs::ia32_apic_base::addr,
+//                  ia32_apic_base_rdmsr_handler);
+//
+//    EMULATE_WRMSR(::intel_x64::msrs::ia32_apic_base::addr,
+//                  ia32_apic_base_wrmsr_handler);
+//
+//    ADD_RDMSR_HANDLER(0x1A0, ia32_misc_enable_rdmsr_handler);       // TODO: use namespace name
+//    EMULATE_WRMSR(0x1A0, ia32_misc_enable_wrmsr_handler);           // TODO: use namespace name
+//    EMULATE_WRMSR(0x6e0, handle_tsc_deadline);
+//
+//    ADD_CPUID_HANDLER(0x0, cpuid_pass_through_handler);
+//    ADD_CPUID_HANDLER(0x1, cpuid_leaf1_handler);
+//    ADD_CPUID_HANDLER(0x2, cpuid_pass_through_handler);             // Passthrough cache info
+//    ADD_CPUID_HANDLER(0x4, cpuid_leaf4_handler);
+//    ADD_CPUID_HANDLER(0x6, cpuid_leaf6_handler);
+//    ADD_CPUID_HANDLER(0x7, cpuid_leaf7_handler);
+//
+//    EMULATE_CPUID(0xA, cpuid_zero_handler);
+//    EMULATE_CPUID(0xB, cpuid_zero_handler);
+//    EMULATE_CPUID(0xD, cpuid_zero_handler);
+//    EMULATE_CPUID(0xF, cpuid_zero_handler);
+//    EMULATE_CPUID(0x10, cpuid_zero_handler);
+//
+//    ADD_CPUID_HANDLER(0x15, cpuid_leaf15_handler);            // TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x16, cpuid_pass_through_handler);            // TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x80000000, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x80000001, cpuid_leaf80000001_handler);      // TODO: 0 reserved bits
+//
+//    ADD_CPUID_HANDLER(0x80000002, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x80000003, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x80000004, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+//
+//    ADD_CPUID_HANDLER(0x80000007, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+//    ADD_CPUID_HANDLER(0x80000008, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+//
+//    EMULATE_IO_INSTRUCTION(0xCF8, io_cf8_in, io_cf8_out);
+//    //EMULATE_IO_INSTRUCTION(0xCFA, io_ones_handler, io_ignore_handler);
+//    EMULATE_IO_INSTRUCTION(0xCFB, io_cfb_in, io_cfb_out);
+//    EMULATE_IO_INSTRUCTION(0xCFC, io_cfc_in, io_cfc_out);
+//    EMULATE_IO_INSTRUCTION(0xCFD, io_cfd_in, io_cfd_out);
+//    EMULATE_IO_INSTRUCTION(0xCFE, io_cfe_in, io_cfe_out);
+//    //EMULATE_IO_INSTRUCTION(0xCFF, io_ones_handler, io_ignore_handler);
+//
+//    /// ACPI SCI interrupt trigger mode
+//    EMULATE_IO_INSTRUCTION(0x4D0, io_zero_handler, io_ignore_handler);
+//    EMULATE_IO_INSTRUCTION(0x4D1, io_zero_handler, io_ignore_handler);
+//
+//    /// NMI assertion
+//    EMULATE_IO_INSTRUCTION(0x70, io_zero_handler, io_ignore_handler);
+//    EMULATE_IO_INSTRUCTION(0x71, io_zero_handler, io_ignore_handler);
+//
+//    /// Ports used for TSC calibration against the PIT. See
+//    /// arch/x86/kernel/tsc.c:pit_calibrate_tsc for detail.
+//    /// Note that these ports are accessed on the Intel NUC.
+//    ///
+//    m_vcpu->pass_through_io_accesses(0x42);
+//    m_vcpu->pass_through_io_accesses(0x43);
+//    m_vcpu->pass_through_io_accesses(0x61);
+//
+//    this->register_unplug_quirk();
+//
+//    ADD_EPT_WRITE_HANDLER(xapic_handle_write);
+//
+//    m_pet_shift = ::intel_x64::msrs::ia32_vmx_misc::preemption_timer_decrement::get();
+//    m_tsc_freq_khz = tsc_frequency();
+//
+//    m_vcpu->add_handler(
+//        exit_reason::basic_exit_reason::hlt,
+//        ::handler_delegate_t::create<xen_op_handler, &xen_op_handler::handle_hlt>(this)
+//    );
+//
+//    this->pci_init_caps();
+//    this->pci_init_bars();
+//    this->pci_init_nic();
 }
 
 // Do fixups after Windows to ensure we start from a known initial state
@@ -365,7 +363,7 @@ xen_op_handler::pci_init_bars()
         bfdebug_subbool(0, "prefetchable", bar.prefetchable);
 
         for (auto i = 0; i < bar.size; i += ::x64::pt::page_size) {
-            m_domain->map_4k_rw_uc(bar.addr + i, bar.addr + i);
+            //m_domain->map_4k_rw_uc(bar.addr + i, bar.addr + i);
         }
     }
 
@@ -374,8 +372,8 @@ xen_op_handler::pci_init_bars()
     m_bridge_bar[1] = cf8_read_reg(cf8, 0x5);
 
     // Map in NIC's PCIe mmconfig page
-    uintptr_t page = 0xf8000000 | (2 << 20);
-    m_domain->map_4k_rw_uc(page, page);
+    //uintptr_t page = 0xf8000000 | (2 << 20);
+    //m_domain->map_4k_rw_uc(page, page);
 }
 
 bool

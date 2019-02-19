@@ -70,6 +70,7 @@ struct vm_t {
     struct madt_t *madt;
     struct fadt_t *fadt;
     struct dsdt_t *dsdt;
+    struct mcfg_t *mcfg;
 
     int used;
 
@@ -397,6 +398,20 @@ setup_acpi(struct vm_t *vm)
     setup_madt(vm->madt);
     setup_fadt(vm->fadt);
     setup_dsdt(vm->dsdt);
+
+    if (vm->exec_mode == VM_EXEC_XENPVH) {
+        vm->mcfg = bfalloc_page(struct mcfg_t);
+        if (vm->mcfg == 0) {
+            BFDEBUG("setup_acpi: failed to alloc mcfg page\n");
+            return FAILURE;
+        }
+
+        ret = donate_page_r(vm, vm->mcfg, ACPI_MCFG_GPA);
+        if (ret != SUCCESS) {
+            return ret;
+        }
+        setup_mcfg(vm->mcfg);
+    }
 
     return SUCCESS;
 }
@@ -910,7 +925,7 @@ setup_32bit_gdt(struct vm_t *vm)
 }
 
 static status_t
-setup_32bit_register_state(struct vm_t *vm)
+native_setup_32bit_register_state(struct vm_t *vm)
 {
     /**
      * Notes:
@@ -983,6 +998,21 @@ setup_32bit_register_state(struct vm_t *vm)
     }
 
     return SUCCESS;
+}
+
+static status_t
+setup_32bit_register_state(struct vm_t *vm)
+{
+    status_t ret = __domain_op__set_rip(vm->domainid, vm->entry_gpa);
+    if (ret != SUCCESS) {
+        return ret;
+    }
+
+    if (vm->exec_mode == VM_EXEC_NATIVE) {
+        return native_setup_32bit_register_state(vm);
+    }
+
+    return FAILURE;
 }
 
 /* -------------------------------------------------------------------------- */

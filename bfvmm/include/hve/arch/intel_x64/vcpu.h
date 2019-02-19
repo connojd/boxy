@@ -329,6 +329,7 @@ private:
     void setup_default_controls();
     void setup_default_handlers();
     void setup_default_register_state();
+    void setup_xenpvh_register_state();
 
 private:
 
@@ -351,9 +352,9 @@ private:
     bool m_killed{};
     vcpu *m_parent_vcpu{};
     uint64_t m_exec_mode;
+    uint64_t m_timer_vec{};
     std::unique_ptr<xen_op_handler> m_xoh{nullptr};
     std::unique_ptr<xapic> m_xapic{nullptr};
-    uint64_t m_timer_vec{0};
 };
 
 }

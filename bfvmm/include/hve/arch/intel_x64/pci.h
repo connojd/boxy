@@ -29,15 +29,15 @@ namespace boxy::intel_x64
 {
 
 #ifndef PCI_PT_BUS
-#define PCI_PT_BUS 0
+#define PCI_PT_BUS 2
 #endif
 
 #ifndef PCI_PT_DEV
-#define PCI_PT_DEV 0x14
+#define PCI_PT_DEV 0
 #endif
 
 #ifndef PCI_PT_FUN
-#define PCI_PT_FUN 0x03
+#define PCI_PT_FUN 0
 #endif
 
 using namespace ::x64::portio;

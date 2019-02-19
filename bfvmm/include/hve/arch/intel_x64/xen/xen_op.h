@@ -71,6 +71,7 @@ class EXPORT_BOXY_HVE xen_op_handler
 {
 public:
 
+    xen_op_handler() = default;
     xen_op_handler(vcpu_t *vcpu, domain *domain);
 
     /// Destructor
@@ -79,8 +80,6 @@ public:
     /// @ensures
     ///
     ~xen_op_handler() = default;
-
-    shared_info_t *shared_info();
 
 private:
 
@@ -277,6 +276,8 @@ private:
     // -------------------------------------------------------------------------
 
     void register_unplug_quirk();
+
+    shared_info_t *shared_info();
 
 private:
 
