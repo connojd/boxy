@@ -22,6 +22,7 @@
 #ifndef XEN_OP_INTEL_X64_BOXY_H
 #define XEN_OP_INTEL_X64_BOXY_H
 
+#include "xen.h"
 #include "../uart.h"
 
 #include <xen/public/xen.h>
@@ -29,7 +30,6 @@
 #include <xen/public/grant_table.h>
 #include <xen/public/arch-x86/cpuid.h>
 
-#include "xen.h"
 #include "evtchn_op.h"
 #include "gnttab_op.h"
 
@@ -39,6 +39,8 @@
 #include <bfvmm/hve/arch/intel_x64/vmexit/rdmsr.h>
 #include <bfvmm/hve/arch/intel_x64/vmexit/io_instruction.h>
 #include <bfvmm/hve/arch/intel_x64/vmexit/ept_violation.h>
+
+#include <hve/arch/intel_x64/pci.h>
 
 // -----------------------------------------------------------------------------
 // Exports
@@ -215,36 +217,36 @@ private:
     // -------------------------------------------------------------------------
 
     bool HYPERVISOR_memory_op(gsl::not_null<vcpu *> vcpu);
-    void XENMEM_decrease_reservation_handler(gsl::not_null<vcpu *> vcpu);
-    void XENMEM_add_to_physmap_handler(gsl::not_null<vcpu *> vcpu);
-    void XENMEM_memory_map_handler(gsl::not_null<vcpu *> vcpu);
+    void XENMEM_decrease_reservation_handler(vcpu *vcpu);
+    void XENMEM_add_to_physmap_handler(vcpu *vcpu);
+    void XENMEM_memory_map_handler(vcpu *vcpu);
 
     bool HYPERVISOR_xen_version(gsl::not_null<vcpu *> vcpu);
-    void XENVER_get_features_handler(gsl::not_null<vcpu *> vcpu);
+    void XENVER_get_features_handler(vcpu *vcpu);
 
     bool HYPERVISOR_grant_table_op(gsl::not_null<vcpu *> vcpu);
-    void GNTTABOP_query_size_handler(gsl::not_null<vcpu *> vcpu);
-    void GNTTABOP_set_version_handler(gsl::not_null<vcpu *> vcpu);
+    void GNTTABOP_query_size_handler(vcpu *vcpu);
+    void GNTTABOP_set_version_handler(vcpu *vcpu);
 
     bool HYPERVISOR_vcpu_op(gsl::not_null<vcpu *> vcpu);
-    void VCPUOP_register_vcpu_info_handler(gsl::not_null<vcpu *> vcpu);
-    void VCPUOP_stop_periodic_timer_handler(gsl::not_null<vcpu *> vcpu);
-    void VCPUOP_stop_singleshot_timer_handler(gsl::not_null<vcpu *> vcpu);
-    void VCPUOP_set_singleshot_timer_handler(gsl::not_null<vcpu *> vcpu);
+    void VCPUOP_register_vcpu_info_handler(vcpu *vcpu);
+    void VCPUOP_stop_periodic_timer_handler(vcpu *vcpu);
+    void VCPUOP_stop_singleshot_timer_handler(vcpu *vcpu);
+    void VCPUOP_set_singleshot_timer_handler(vcpu *vcpu);
 
     bool HYPERVISOR_hvm_op(gsl::not_null<vcpu *> vcpu);
-    void HVMOP_set_param_handler(gsl::not_null<vcpu *> vcpu);
-    void HVMOP_get_param_handler(gsl::not_null<vcpu *> vcpu);
-    void HVMOP_pagetable_dying_handler(gsl::not_null<vcpu *> vcpu);
+    void HVMOP_set_param_handler(vcpu *vcpu);
+    void HVMOP_get_param_handler(vcpu *vcpu);
+    void HVMOP_pagetable_dying_handler(vcpu *vcpu);
 
     bool HYPERVISOR_event_channel_op(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_init_control_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_expand_array_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_alloc_unbound_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_send_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_bind_ipi_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_bind_virq_handler(gsl::not_null<vcpu *> vcpu);
-    void EVTCHNOP_bind_vcpu_handler(gsl::not_null<vcpu *> vcpu);
+    void EVTCHNOP_init_control_handler(vcpu *vcpu);
+    void EVTCHNOP_expand_array_handler(vcpu *vcpu);
+    void EVTCHNOP_alloc_unbound_handler(vcpu *vcpu);
+    void EVTCHNOP_send_handler(vcpu *vcpu);
+    void EVTCHNOP_bind_ipi_handler(vcpu *vcpu);
+    void EVTCHNOP_bind_virq_handler(vcpu *vcpu);
+    void EVTCHNOP_bind_vcpu_handler(vcpu *vcpu);
 
     // -------------------------------------------------------------------------
     // APIC
@@ -255,7 +257,7 @@ private:
     uint8_t *map_rip(rip_cache_t &rc, uint64_t rip, uint64_t len);
 
     bool xapic_handle_write(
-        vcpu_t *vcpu,
+        bfvmm::intel_x64::vcpu *vcpu,
         bfvmm::intel_x64::ept_violation_handler::info_t &info);
 
     void xapic_handle_write_icr(uint32_t icr_low);
@@ -321,7 +323,7 @@ private:
     bfvmm::x64::unique_map<uint8_t> m_console;
 
     std::unique_ptr<boxy::intel_x64::evtchn_op> m_evtchn_op;
-    //std::unique_ptr<boxy::intel_x64::gnttab_op> m_gnttab_op;
+    std::unique_ptr<boxy::intel_x64::gnttab_op> m_gnttab_op;
 
 public:
 

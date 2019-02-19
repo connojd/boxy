@@ -54,6 +54,12 @@
 namespace boxy::intel_x64
 {
 
+struct e820_entry_t {
+    uint64_t addr;
+    uint64_t size;
+    uint32_t type;
+} __attribute__((packed));
+
 class vcpu;
 
 /// Domain
@@ -77,6 +83,19 @@ public:
     ~domain() = default;
 
 public:
+
+    /// Add E820 Map Entry
+    ///
+    /// Adds an E820 map entry to the list. This is populated by the domain
+    /// builder, which is them provided to the guest on demand through the
+    /// vmcall interface
+    ///
+    /// @expects
+    /// @ensures
+    ///
+    /// @param entry the E820 map entry to add
+    ///
+    void add_e820_entry(const e820_entry_t &entry);
 
     /// Map 1g GPA to HPA (Read-Only)
     ///
@@ -155,6 +174,7 @@ public:
     /// @param hpa the host physical address
     ///
     void map_4k_rw(uintptr_t gpa, uintptr_t hpa);
+    void map_4k_rw_uc(uintptr_t gpa, uintptr_t hpa);
 
     /// Map 1g GPA to HPA (Read/Write/Execute)
     ///
@@ -414,6 +434,9 @@ public:
     global_state()
     { return &m_vcpu_global_state; }
 
+    std::vector<e820_entry_t> &e820_map()
+    { return m_e820_map; }
+
 private:
 
     void setup_dom0();
@@ -421,6 +444,7 @@ private:
 
 private:
 
+    std::vector<e820_entry_t> m_e820_map;
     bfvmm::intel_x64::ept::mmap m_ept_map;
     bfvmm::intel_x64::vcpu_global_state_t m_vcpu_global_state;
 

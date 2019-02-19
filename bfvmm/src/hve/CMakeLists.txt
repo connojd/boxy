@@ -22,6 +22,7 @@
 if(${BUILD_TARGET_ARCH} STREQUAL "x86_64")
     list(APPEND SOURCES
         arch/intel_x64/apic/x2apic.cpp
+        arch/intel_x64/apic/xapic.cpp
         arch/intel_x64/pci/pci_configuration_space.cpp
         arch/intel_x64/vmexit/cpuid.cpp
         arch/intel_x64/vmexit/external_interrupt.cpp
@@ -39,7 +40,7 @@ if(${BUILD_TARGET_ARCH} STREQUAL "x86_64")
         arch/intel_x64/visr.cpp
         arch/intel_x64/xen/evtchn_op.cpp
         arch/intel_x64/xen/gnttab_op.cpp
-        #            arch/intel_x64/xen/xen_op.cpp
+        arch/intel_x64/xen/xen_op.cpp
     )
 
 elseif(${BUILD_TARGET_ARCH} STREQUAL "aarch64")

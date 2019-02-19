@@ -23,6 +23,7 @@
 #define VCPU_INTEL_X64_BOXY_H
 
 #include "apic/x2apic.h"
+#include "apic/xapic.h"
 #include "pci/pci_configuration_space.h"
 
 #include "vmexit/cpuid.h"
@@ -37,6 +38,8 @@
 #include "vmcall/vcpu_op.h"
 
 #include "domain.h"
+#include "pci.h"
+#include "xen/xen_op.h"
 
 #include <bfvmm/vcpu/vcpu_manager.h>
 #include <bfvmm/hve/arch/intel_x64/vcpu.h>
@@ -61,24 +64,10 @@
 // Definition
 //------------------------------------------------------------------------------
 
-#ifndef PCI_PT_BUS
-#define PCI_PT_BUS 0
-#endif
-
-#ifndef PCI_PT_DEV
-#define PCI_PT_DEV 0x14
-#endif
-
-#ifndef PCI_PT_FUN
-#define PCI_PT_FUN 0x03
-#endif
-
-inline uint32_t g_pci_pt_bus = PCI_PT_BUS;
-inline uint32_t g_pci_pt_dev = PCI_PT_DEV;
-inline uint32_t g_pci_pt_fun = PCI_PT_FUN;
-
 namespace boxy::intel_x64
 {
+
+class xen_op_handler;
 
 class EXPORT_BOXY_HVE vcpu : public bfvmm::intel_x64::vcpu
 {
@@ -153,6 +142,20 @@ public:
     ///
     domain::domainid_type domid() const;
 
+    /// E820 Map
+    ///
+    /// @return the E820 map associated with this vCPU. This is set by the
+    /// domain builder using hypercalls.
+    ///
+    std::vector<e820_entry_t> &e820_map();
+
+    /// Domain
+    ///
+    /// @return the domain this vcpu belongs to
+    ///
+    domain *dom();
+
+    //--------------------------------------------------------------------------
     //--------------------------------------------------------------------------
     // VMCall
     //--------------------------------------------------------------------------
@@ -314,6 +317,13 @@ public:
     ///
     void set_exec_mode(uint64_t mode);
 
+    uint64_t lapicid() { return m_xapic->id(); }
+    uint64_t lapic_base() { return m_xapic->base(); }
+    void lapic_write(uint64_t idx, uint32_t val) { m_xapic->write(idx, val); }
+
+    void queue_timer_interrupt() { this->queue_external_interrupt(m_timer_vec); }
+    void set_timer_vector(uint64_t vector) { m_timer_vec = vector; }
+
 private:
 
     void setup_default_controls();
@@ -338,10 +348,12 @@ private:
     x2apic_handler m_x2apic_handler;
     pci_configuration_space_handler m_pci_configuration_space_handler;
 
-
     bool m_killed{};
     vcpu *m_parent_vcpu{};
     uint64_t m_exec_mode;
+    std::unique_ptr<xen_op_handler> m_xoh{nullptr};
+    std::unique_ptr<xapic> m_xapic{nullptr};
+    uint64_t m_timer_vec{0};
 };
 
 }

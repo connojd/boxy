@@ -25,12 +25,11 @@
 #include <list>
 #include <iostream>
 
-#include <hve/arch/intel_x64/vcpu.h>
-#include <hve/arch/intel_x64/lapic.h>
-#include <hve/arch/intel_x64/pci.h>
-#include <hve/arch/intel_x64/iommu.h>
-#include <eapis/hve/arch/intel_x64/time.h>
-#include <eapis/hve/arch/intel_x64/vtd/iommu.h>
+#include <arch/intel_x64/apic/lapic.h>
+#include <arch/intel_x64/time.h>
+#include <arch/intel_x64/iommu.h>
+
+#include <hve/arch/intel_x64/xen/xen.h>
 
 #include <xen/public/xen.h>
 #include <xen/public/event_channel.h>
@@ -41,6 +40,10 @@
 #include <xen/public/hvm/params.h>
 #include <xen/public/arch-x86/cpuid.h>
 
+#include <hve/arch/intel_x64/vcpu.h>
+#include <hve/arch/intel_x64/pci.h>
+#include <hve/arch/intel_x64/iommu.h>
+#include <hve/arch/intel_x64/apic/xapic.h>
 #include <hve/arch/intel_x64/xen/xen_op.h>
 #include <hve/arch/intel_x64/xen/evtchn_op.h>
 #include <hve/arch/intel_x64/xen/gnttab_op.h>
@@ -58,7 +61,7 @@ constexpr auto xen_msr_debug_nhex       = 0xC0000700;
 // =============================================================================
 
 #define make_delegate(a,b)                                                                          \
-    eapis::intel_x64::a::handler_delegate_t::create<xen_op_handler, &xen_op_handler::b>(this)
+    bfvmm::intel_x64::a::handler_delegate_t::create<xen_op_handler, &xen_op_handler::b>(this)
 
 #define ADD_VMCALL_HANDLER(a)                                                                       \
     m_vcpu->add_vmcall_handler(                                                                     \
@@ -96,7 +99,7 @@ constexpr auto xen_msr_debug_nhex       = 0xC0000700;
     m_vcpu->add_ept_write_violation_handler(make_delegate(ept_violation_handler, b))
 
 #define ADD_VMX_PET_HANDLER(b) \
-    m_vcpu->add_vmx_preemption_timer_handler(make_delegate(vmx_preemption_timer_handler, b))
+    m_vcpu->add_preemption_timer_handler(make_delegate(preemption_timer_handler, b))
 
 // =============================================================================
 // Implementation
@@ -108,10 +111,10 @@ namespace boxy::intel_x64
 static uint64_t tsc_frequency(void);
 
 xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
-    m_vcpu{vcpu},
+    m_vcpu{vcpu_cast(vcpu)},
     m_domain{domain},
-    m_evtchn_op{std::make_unique<evtchn_op>(vcpu, this)},
-    m_gnttab_op{std::make_unique<gnttab_op>(vcpu, this)}
+    m_evtchn_op{std::make_unique<evtchn_op>(vcpu)},
+    m_gnttab_op{std::make_unique<gnttab_op>(vcpu)}
 {
     using namespace vmcs_n;
 
@@ -139,10 +142,10 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
     ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
     ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
 
-    if (vcpu->is_domU()) {
-        vcpu->trap_on_all_io_instruction_accesses();
-        vcpu->trap_on_all_rdmsr_accesses();
-        vcpu->trap_on_all_wrmsr_accesses();
+    if (m_vcpu->is_domU()) {
+        m_vcpu->trap_on_all_io_instruction_accesses();
+        m_vcpu->trap_on_all_rdmsr_accesses();
+        m_vcpu->trap_on_all_wrmsr_accesses();
     }
 
     this->isolate_msr(::x64::msrs::ia32_star::addr);
@@ -151,24 +154,24 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
     this->isolate_msr(::x64::msrs::ia32_fmask::addr);
     this->isolate_msr(::x64::msrs::ia32_kernel_gs_base::addr);
 
-    if (vcpu->is_dom0()) {
+    if (m_vcpu->is_dom0()) {
         ADD_WRMSR_HANDLER(::intel_x64::msrs::ia32_apic_base::addr, dom0_apic_base);
         return;
     }
 
-    domain->setup_vcpu_uarts(vcpu);
+    domain->setup_vcpu_uarts(m_vcpu);
 
-    vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
-    vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
+    m_vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
 
     // We effectively pass this through to the guest already
-    // through the eapis::intel_x64::timer::tsc_freq_MHz
-    vcpu->pass_through_msr_access(::intel_x64::msrs::platform_info::addr);
+    // through the bfvmm::intel_x64::timer::tsc_freq_MHz
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::platform_info::addr);
 
     EMULATE_RDMSR(0x34, rdmsr_zero_handler);
     EMULATE_RDMSR(0x64E, rdmsr_zero_handler);
@@ -231,9 +234,9 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
     /// arch/x86/kernel/tsc.c:pit_calibrate_tsc for detail.
     /// Note that these ports are accessed on the Intel NUC.
     ///
-    vcpu->pass_through_io_accesses(0x42);
-    vcpu->pass_through_io_accesses(0x43);
-    vcpu->pass_through_io_accesses(0x61);
+    m_vcpu->pass_through_io_accesses(0x42);
+    m_vcpu->pass_through_io_accesses(0x43);
+    m_vcpu->pass_through_io_accesses(0x61);
 
     this->register_unplug_quirk();
 
@@ -257,7 +260,7 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 void
 xen_op_handler::pci_init_nic()
 {
-    auto nic = bdf_to_cf8(NIC_BUS, NIC_DEV, NIC_FUN);
+    auto nic = bdf_to_cf8(PCI_PT_BUS, PCI_PT_DEV, PCI_PT_FUN);
 
     // status_command - disable INTx
     cf8_write_reg(nic, 0x1, 0x00100407);
@@ -278,7 +281,7 @@ xen_op_handler::pci_init_nic()
 void
 xen_op_handler::pci_init_caps()
 {
-    const auto cf8 = bdf_to_cf8(NIC_BUS, NIC_DEV, NIC_FUN);
+    const auto cf8 = bdf_to_cf8(PCI_PT_BUS, PCI_PT_DEV, PCI_PT_FUN);
     if ((cf8_read_reg(cf8, 0x1) & 0x0010'0000) == 0) {
         printf("NIC: capability list empty\n");
         return;
@@ -334,7 +337,7 @@ xen_op_handler::pci_init_caps()
 void
 xen_op_handler::pci_init_bars()
 {
-    auto cf8 = bdf_to_cf8(NIC_BUS, NIC_DEV, NIC_FUN);
+    auto cf8 = bdf_to_cf8(PCI_PT_BUS, PCI_PT_DEV, PCI_PT_FUN);
 
     for (auto reg = 0x4; reg <= 0x9; reg++) {
         m_nic_bar.at(reg - 0x4) = cf8_read_reg(cf8, reg);
@@ -377,8 +380,8 @@ xen_op_handler::pci_init_bars()
 
 bool
 xen_op_handler::io_cf8_in(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     info.val = m_cf8;
     return true;
@@ -386,15 +389,15 @@ xen_op_handler::io_cf8_in(
 
 bool
 xen_op_handler::io_cf8_out(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     m_cf8 = info.val;
     return true;
 }
 
 bool
-xen_op_handler::pci_msix_cap_prev_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_msix_cap_prev_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(m_msix_cap != 0);
     expects(m_msix_cap_prev != 0);
@@ -433,7 +436,7 @@ xen_op_handler::pci_msix_cap_prev_in(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_owned_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_owned_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(m_msix_cap_prev != 0);
     if (cf8_to_reg(m_cf8) == m_msix_cap_prev) {
@@ -483,7 +486,7 @@ xen_op_handler::pci_owned_in(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_host_bridge_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_host_bridge_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     switch (cf8_to_reg(m_cf8)) {
         case 0x00:
@@ -531,7 +534,7 @@ xen_op_handler::pci_host_bridge_in(io_instruction_handler::info_t &info)
 // Normal -> not a PCI bridge -> config layout 0
 //
 bool
-xen_op_handler::pci_hdr_normal_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_hdr_normal_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     if (domU_owned_cf8(m_cf8)) {
 //        printf("(owned)  ");
@@ -550,7 +553,7 @@ xen_op_handler::pci_hdr_normal_in(io_instruction_handler::info_t &info)
 // PCI bridge -> config layout 1
 //
 bool
-xen_op_handler::pci_hdr_pci_bridge_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_hdr_pci_bridge_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
 //    printf("(bridge) ");
 
@@ -631,7 +634,7 @@ xen_op_handler::pci_hdr_pci_bridge_in(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_in(io_instruction_handler::info_t &info)
+xen_op_handler::pci_in(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     bool ret = false;
 
@@ -674,8 +677,8 @@ xen_op_handler::pci_in(io_instruction_handler::info_t &info)
 
 bool
 xen_op_handler::io_cfc_in(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFC);
 
@@ -685,8 +688,8 @@ xen_op_handler::io_cfc_in(
 
 bool
 xen_op_handler::io_cfd_in(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFD);
 
@@ -696,8 +699,8 @@ xen_op_handler::io_cfd_in(
 
 bool
 xen_op_handler::io_cfe_in(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFE);
 
@@ -706,7 +709,7 @@ xen_op_handler::io_cfe_in(
 }
 
 bool
-xen_op_handler::pci_hdr_pci_bridge_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_hdr_pci_bridge_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
 //    printf("(bridge) ");
 
@@ -732,7 +735,7 @@ xen_op_handler::pci_hdr_pci_bridge_out(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_hdr_normal_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_hdr_normal_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     if (domU_owned_cf8(m_cf8)) {
 //        printf("(owned)  ");
@@ -748,7 +751,7 @@ xen_op_handler::pci_hdr_normal_out(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_owned_msi_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_owned_msi_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     const auto pci_reg = cf8_to_reg(m_cf8);
     pci_bars_t virt_bars;
@@ -833,7 +836,7 @@ xen_op_handler::pci_owned_msi_out(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_owned_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_owned_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     const auto reg = cf8_to_reg(m_cf8);
     expects(reg != m_msix_cap);
@@ -862,13 +865,13 @@ xen_op_handler::pci_owned_out(io_instruction_handler::info_t &info)
 }
 
 bool
-xen_op_handler::pci_host_bridge_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_host_bridge_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     return false;
 }
 
 bool
-xen_op_handler::pci_out(io_instruction_handler::info_t &info)
+xen_op_handler::pci_out(bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     bool ret = false;
 
@@ -911,8 +914,8 @@ xen_op_handler::pci_out(io_instruction_handler::info_t &info)
 
 bool
 xen_op_handler::io_cfc_out(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFC);
 
@@ -922,8 +925,8 @@ xen_op_handler::io_cfc_out(
 
 bool
 xen_op_handler::io_cfd_out(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFD);
 
@@ -933,8 +936,8 @@ xen_op_handler::io_cfd_out(
 
 bool
 xen_op_handler::io_cfe_out(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.port_number == 0xCFE);
 
@@ -944,16 +947,16 @@ xen_op_handler::io_cfe_out(
 
 bool
 xen_op_handler::io_cfb_in(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     return false;
 }
 
 bool
 xen_op_handler::io_cfb_out(
-    gsl::not_null<vcpu_t *> vcpu,
-    io_instruction_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     expects(info.val == 1);
     return true;
@@ -968,7 +971,7 @@ tsc_frequency(void)
 {
     using namespace ::x64::cpuid;
     using namespace ::intel_x64::cpuid;
-    using namespace ::eapis::intel_x64::time;
+    using namespace ::intel_x64::time;
 
     // If we are running on VMWare, frequency information is reported through
     // a different CPUID leaf that is hypervisor specific so we should check
@@ -1017,12 +1020,12 @@ tsc_frequency(void)
 // -----------------------------------------------------------------------------
 
 bool
-xen_op_handler::handle_vmx_pet(gsl::not_null<vcpu_t *> vcpu)
+xen_op_handler::handle_vmx_pet(vcpu_t *vcpu)
 {
     bfignored(vcpu);
 
     m_vcpu->queue_timer_interrupt();
-    m_vcpu->disable_vmx_preemption_timer();
+    m_vcpu->disable_preemption_timer();
 
     return true;
 }
@@ -1032,11 +1035,11 @@ xen_op_handler::handle_vmx_pet(gsl::not_null<vcpu_t *> vcpu)
 // -----------------------------------------------------------------------------
 
 bool
-xen_op_handler::handle_hlt(gsl::not_null<vcpu_t *> vcpu)
+xen_op_handler::handle_hlt(vcpu_t *vcpu)
 {
     vcpu->advance();
 
-    const auto pet_ticks = m_vcpu->get_vmx_preemption_timer();
+    const auto pet_ticks = m_vcpu->get_preemption_timer();
     const auto tsc_ticks = pet_ticks << m_pet_shift;
     const auto uhz = m_tsc_freq_khz / 1000U;
     uint64_t usec = 1;
@@ -1052,7 +1055,7 @@ xen_op_handler::handle_hlt(gsl::not_null<vcpu_t *> vcpu)
     ///
     ::intel_x64::vmcs::guest_interruptibility_state::blocking_by_sti::disable();
 
-    m_vcpu->disable_vmx_preemption_timer();
+    m_vcpu->disable_preemption_timer();
     m_vcpu->queue_timer_interrupt();
     m_vcpu->parent_vcpu()->load();
     m_vcpu->parent_vcpu()->return_yield(usec);
@@ -1122,7 +1125,7 @@ xen_op_handler::run_delegate(bfobject *obj)
 
 bool
 xen_op_handler::exit_handler(
-    gsl::not_null<vcpu_t *> vcpu)
+    vcpu_t *vcpu)
 {
     bfignored(vcpu);
 
@@ -1147,7 +1150,7 @@ xen_op_handler::exit_handler(
 // -----------------------------------------------------------------------------
 
 uint32_t
-src_op_value(gsl::not_null<vcpu_t *> vcpu, int64_t src_op)
+src_op_value(vcpu_t *vcpu, int64_t src_op)
 {
     switch (src_op) {
         case boxy::intel_x64::insn_decoder::eax:
@@ -1174,7 +1177,7 @@ src_op_value(gsl::not_null<vcpu_t *> vcpu, int64_t src_op)
 void
 xen_op_handler::xapic_handle_write_icr(uint32_t low)
 {
-    using namespace eapis::intel_x64::lapic;
+    using namespace ::intel_x64::lapic;
 
     const auto dlm = icr_low::delivery_mode::get(low);
     switch (dlm) {
@@ -1200,7 +1203,7 @@ xen_op_handler::xapic_handle_write_icr(uint32_t low)
 void
 xen_op_handler::xapic_handle_write_lvt_timer(uint32_t val)
 {
-    using namespace eapis::intel_x64::lapic;
+    using namespace ::intel_x64::lapic;
 
     const auto mode = lvt::timer::mode::get(val);
     switch (mode) {
@@ -1239,10 +1242,10 @@ xen_op_handler::map_rip(xen_op_handler::rip_cache_t &rc, uint64_t rip, uint64_t 
 
 bool
 xen_op_handler::xapic_handle_write(
-    gsl::not_null<vcpu_t *> vcpu,
-    eapis::intel_x64::ept_violation_handler::info_t &info)
+    bfvmm::intel_x64::vcpu *vcpu,
+    bfvmm::intel_x64::ept_violation_handler::info_t &info)
 {
-    using namespace eapis::intel_x64::lapic;
+    using namespace ::intel_x64::lapic;
 
     if (bfn::upper(info.gpa) != m_vcpu->lapic_base()) {
         return false;
@@ -1309,7 +1312,7 @@ xen_op_handler::isolate_msr(uint32_t msr)
 
 bool
 xen_op_handler::rdmsr_zero_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::rdmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1319,7 +1322,7 @@ xen_op_handler::rdmsr_zero_handler(
 
 bool
 xen_op_handler::wrmsr_ignore_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1329,7 +1332,7 @@ xen_op_handler::wrmsr_ignore_handler(
 
 bool
 xen_op_handler::rdmsr_pass_through_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::rdmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1339,7 +1342,7 @@ xen_op_handler::rdmsr_pass_through_handler(
 
 bool
 xen_op_handler::wrmsr_pass_through_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1349,7 +1352,7 @@ xen_op_handler::wrmsr_pass_through_handler(
 
 bool
 xen_op_handler::wrmsr_store_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1359,7 +1362,7 @@ xen_op_handler::wrmsr_store_handler(
 
 bool
 xen_op_handler::ia32_misc_enable_rdmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::rdmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     using namespace ::intel_x64::msrs::ia32_misc_enable;
@@ -1388,7 +1391,7 @@ xen_op_handler::ia32_misc_enable_rdmsr_handler(
 
 bool
 xen_op_handler::ia32_misc_enable_wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1398,7 +1401,7 @@ xen_op_handler::ia32_misc_enable_wrmsr_handler(
 
 bool
 xen_op_handler::ia32_apic_base_rdmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::rdmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1415,7 +1418,7 @@ xen_op_handler::ia32_apic_base_rdmsr_handler(
 //
 bool
 xen_op_handler::ia32_apic_base_wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     using namespace ::intel_x64::msrs::ia32_apic_base;
     bfignored(vcpu);
@@ -1455,7 +1458,7 @@ vmx_init_hypercall_page(uint8_t *hypercall_page)
 
 bool
 xen_op_handler::dom0_apic_base(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     ::intel_x64::msrs::ia32_apic_base::dump(0, info.val);
     info.ignore_write = false;
@@ -1464,7 +1467,7 @@ xen_op_handler::dom0_apic_base(
 
 bool
 xen_op_handler::xen_hypercall_page_wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     auto map = vcpu_cast(vcpu)->map_gpa_4k<uint8_t>(info.val);
     vmx_init_hypercall_page(map.get());
@@ -1474,7 +1477,7 @@ xen_op_handler::xen_hypercall_page_wrmsr_handler(
 
 bool
 xen_op_handler::xen_debug_ndec_wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1484,7 +1487,7 @@ xen_op_handler::xen_debug_ndec_wrmsr_handler(
 
 bool
 xen_op_handler::xen_debug_nhex_wrmsr_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1494,8 +1497,8 @@ xen_op_handler::xen_debug_nhex_wrmsr_handler(
 
 bool
 xen_op_handler::handle_tsc_deadline(
-    gsl::not_null<vcpu_t *> vcpu,
-    eapis::intel_x64::wrmsr_handler::info_t &info)
+    vcpu_t *vcpu,
+    bfvmm::intel_x64::wrmsr_handler::info_t &info)
 {
     bfignored(vcpu);
     m_pet_ticks = 0;
@@ -1505,8 +1508,8 @@ xen_op_handler::handle_tsc_deadline(
 
     if (next - tick > (1ULL << m_pet_shift)) {
         m_pet_ticks = (next - tick) >> m_pet_shift;
-        m_vcpu->set_vmx_preemption_timer(m_pet_ticks);
-        m_vcpu->enable_vmx_preemption_timer();
+        m_vcpu->set_preemption_timer(m_pet_ticks);
+        m_vcpu->enable_preemption_timer();
         return true;
     }
 
@@ -1523,7 +1526,7 @@ xen_op_handler::handle_tsc_deadline(
 
 bool
 xen_op_handler::cpuid_zero_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1537,7 +1540,7 @@ xen_op_handler::cpuid_zero_handler(
 
 bool
 xen_op_handler::cpuid_pass_through_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1547,7 +1550,7 @@ xen_op_handler::cpuid_pass_through_handler(
 
 bool
 xen_op_handler::cpuid_leaf4_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     using namespace ::intel_x64::cpuid::cache_parameters::eax;
     bfignored(vcpu);
@@ -1561,7 +1564,7 @@ xen_op_handler::cpuid_leaf4_handler(
 
 bool
 xen_op_handler::cpuid_leaf1_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1590,7 +1593,7 @@ xen_op_handler::cpuid_leaf1_handler(
 
 bool
 xen_op_handler::cpuid_leaf6_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1608,7 +1611,7 @@ xen_op_handler::cpuid_leaf6_handler(
 
 bool
 xen_op_handler::cpuid_leaf7_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1668,7 +1671,7 @@ xen_op_handler::cpuid_leaf7_handler(
 //
 bool
 xen_op_handler::cpuid_leaf15_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1685,7 +1688,7 @@ xen_op_handler::cpuid_leaf15_handler(
 
 bool
 xen_op_handler::cpuid_leaf80000001_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1704,7 +1707,7 @@ xen_op_handler::cpuid_leaf80000001_handler(
 
 bool
 xen_op_handler::xen_cpuid_leaf1_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1718,7 +1721,7 @@ xen_op_handler::xen_cpuid_leaf1_handler(
 
 bool
 xen_op_handler::xen_cpuid_leaf2_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1732,7 +1735,7 @@ xen_op_handler::xen_cpuid_leaf2_handler(
 
 bool
 xen_op_handler::xen_cpuid_leaf3_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1746,7 +1749,7 @@ xen_op_handler::xen_cpuid_leaf3_handler(
 
 bool
 xen_op_handler::xen_cpuid_leaf5_handler(
-    gsl::not_null<vcpu_t *> vcpu, eapis::intel_x64::cpuid_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::cpuid_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1769,7 +1772,7 @@ xen_op_handler::xen_cpuid_leaf5_handler(
 
 bool
 xen_op_handler::io_zero_handler(
-    gsl::not_null<vcpu_t *> vcpu, io_instruction_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1779,7 +1782,7 @@ xen_op_handler::io_zero_handler(
 
 bool
 xen_op_handler::io_ones_handler(
-    gsl::not_null<vcpu_t *> vcpu, io_instruction_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     bfignored(vcpu);
 
@@ -1789,7 +1792,7 @@ xen_op_handler::io_ones_handler(
 
 bool
 xen_op_handler::io_ignore_handler(
-    gsl::not_null<vcpu_t *> vcpu, io_instruction_handler::info_t &info)
+    vcpu_t *vcpu, bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     bfignored(vcpu);
     bfignored(info);
@@ -1802,8 +1805,7 @@ xen_op_handler::io_ignore_handler(
 // -----------------------------------------------------------------------------
 
 bool
-xen_op_handler::HYPERVISOR_memory_op(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HYPERVISOR_memory_op(gsl::not_null<vcpu *> vcpu)
 {
     if (vcpu->rax() != __HYPERVISOR_memory_op) {
         return false;
@@ -1830,8 +1832,7 @@ xen_op_handler::HYPERVISOR_memory_op(
 }
 
 void
-xen_op_handler::XENMEM_decrease_reservation_handler(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::XENMEM_decrease_reservation_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<xen_memory_reservation_t>(vcpu->rsi());
@@ -1864,8 +1865,7 @@ xen_op_handler::local_xenstore() const
 { return m_vcpu->id() == 0x10000; }
 
 void
-xen_op_handler::XENMEM_add_to_physmap_handler(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::XENMEM_add_to_physmap_handler(vcpu *vcpu)
 {
     try {
         auto xen_add_to_physmap_arg =
@@ -1909,13 +1909,12 @@ xen_op_handler::XENMEM_add_to_physmap_handler(
 }
 
 void
-xen_op_handler::XENMEM_memory_map_handler(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::XENMEM_memory_map_handler(vcpu *vcpu)
 {
     try {
         auto map = vcpu->map_arg<xen_memory_map>(vcpu->rsi());
 
-        if (map->nr_entries < vcpu->e820_map().size()) {
+        if (map->nr_entries < m_vcpu->e820_map().size()) {
             throw std::runtime_error("guest E820 too small");
         }
 
@@ -1926,7 +1925,7 @@ xen_op_handler::XENMEM_memory_map_handler(
         auto e820_view = gsl::span<e820_entry_t>(e820.get(), size);
 
         map->nr_entries = 0;
-        for (const auto &entry : vcpu->e820_map()) {
+        for (const auto &entry : m_vcpu->e820_map()) {
             e820_view[map->nr_entries].addr = entry.addr;
             e820_view[map->nr_entries].size = entry.size;
             e820_view[map->nr_entries].type = entry.type;
@@ -1945,8 +1944,7 @@ xen_op_handler::XENMEM_memory_map_handler(
 // -----------------------------------------------------------------------------
 
 bool
-xen_op_handler::HYPERVISOR_xen_version(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HYPERVISOR_xen_version(gsl::not_null<vcpu *> vcpu)
 {
     if (vcpu->rax() != __HYPERVISOR_xen_version) {
         return false;
@@ -1966,7 +1964,7 @@ xen_op_handler::HYPERVISOR_xen_version(
 
 void
 xen_op_handler::XENVER_get_features_handler(
-    gsl::not_null<vcpu *> vcpu)
+    vcpu *vcpu)
 {
     try {
         auto info =
@@ -2030,7 +2028,7 @@ xen_op_handler::HYPERVISOR_grant_table_op(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::GNTTABOP_query_size_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::GNTTABOP_query_size_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<gnttab_query_size_t>(vcpu->rsi());
@@ -2043,7 +2041,7 @@ xen_op_handler::GNTTABOP_query_size_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::GNTTABOP_set_version_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::GNTTABOP_set_version_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<gnttab_set_version_t>(vcpu->rsi());
@@ -2087,20 +2085,20 @@ xen_op_handler::HYPERVISOR_vcpu_op(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::VCPUOP_stop_periodic_timer_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::VCPUOP_stop_periodic_timer_handler(vcpu *vcpu)
 {
     vcpu->set_rax(SUCCESS);
 }
 
 void
-xen_op_handler::VCPUOP_stop_singleshot_timer_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::VCPUOP_stop_singleshot_timer_handler(vcpu *vcpu)
 {
     vcpu->set_rax(SUCCESS);
 }
 
 void
 xen_op_handler::VCPUOP_register_vcpu_info_handler(
-    gsl::not_null<vcpu *> vcpu)
+    vcpu *vcpu)
 {
     try {
         expects(m_shared_info);
@@ -2170,7 +2168,7 @@ xen_op_handler::HYPERVISOR_event_channel_op(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::EVTCHNOP_bind_ipi_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_bind_ipi_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_bind_ipi_t>(vcpu->rsi());
@@ -2183,7 +2181,7 @@ xen_op_handler::EVTCHNOP_bind_ipi_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::EVTCHNOP_bind_virq_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_bind_virq_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_bind_virq_t>(vcpu->rsi());
@@ -2196,7 +2194,7 @@ xen_op_handler::EVTCHNOP_bind_virq_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::EVTCHNOP_bind_vcpu_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_bind_vcpu_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_bind_vcpu_t>(vcpu->rsi());
@@ -2211,7 +2209,7 @@ xen_op_handler::EVTCHNOP_bind_vcpu_handler(gsl::not_null<vcpu *> vcpu)
 
 void
 xen_op_handler::EVTCHNOP_init_control_handler(
-    gsl::not_null<vcpu *> vcpu)
+    vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_init_control_t>(vcpu->rsi());
@@ -2224,7 +2222,7 @@ xen_op_handler::EVTCHNOP_init_control_handler(
 }
 
 void
-xen_op_handler::EVTCHNOP_expand_array_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_expand_array_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_expand_array_t>(vcpu->rsi());
@@ -2237,7 +2235,7 @@ xen_op_handler::EVTCHNOP_expand_array_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::EVTCHNOP_alloc_unbound_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_alloc_unbound_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_alloc_unbound_t>(vcpu->rsi());
@@ -2250,7 +2248,7 @@ xen_op_handler::EVTCHNOP_alloc_unbound_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::EVTCHNOP_send_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::EVTCHNOP_send_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<evtchn_send_t>(vcpu->rsi());
@@ -2286,8 +2284,7 @@ xen_op_handler::EVTCHNOP_send_handler(gsl::not_null<vcpu *> vcpu)
 // -----------------------------------------------------------------------------
 
 bool
-xen_op_handler::HYPERVISOR_hvm_op(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HYPERVISOR_hvm_op(gsl::not_null<vcpu *> vcpu)
 {
     if (vcpu->rax() != __HYPERVISOR_hvm_op) {
         return false;
@@ -2334,7 +2331,7 @@ verify_callback_via(uint64_t via)
 }
 
 void
-xen_op_handler::HVMOP_set_param_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HVMOP_set_param_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<xen_hvm_param_t>(vcpu->rsi());
@@ -2361,7 +2358,7 @@ xen_op_handler::HVMOP_set_param_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::HVMOP_get_param_handler(gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HVMOP_get_param_handler(vcpu *vcpu)
 {
     try {
         auto arg = vcpu->map_arg<xen_hvm_param_t>(vcpu->rsi());
@@ -2373,8 +2370,8 @@ xen_op_handler::HVMOP_get_param_handler(gsl::not_null<vcpu *> vcpu)
                 break;
 
             case HVM_PARAM_CONSOLE_PFN:
-                m_console = vcpu->map_gpa_4k<uint8_t>(XEN_CONSOLE_PAGE_GPA);
-                arg->value = XEN_CONSOLE_PAGE_GPA >> x64::pt::page_shift;
+                m_console = vcpu->map_gpa_4k<uint8_t>(PVH_CONSOLE_GPA);
+                arg->value = PVH_CONSOLE_GPA >> x64::pt::page_shift;
                 break;
 
             default:
@@ -2393,8 +2390,7 @@ xen_op_handler::HVMOP_get_param_handler(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::HVMOP_pagetable_dying_handler(
-    gsl::not_null<vcpu *> vcpu)
+xen_op_handler::HVMOP_pagetable_dying_handler(vcpu *vcpu)
 {
     bfignored(vcpu);
 }

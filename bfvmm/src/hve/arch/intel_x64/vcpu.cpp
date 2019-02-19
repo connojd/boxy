@@ -20,9 +20,11 @@
 // SOFTWARE.
 
 #include <intrinsics.h>
+#include <bfbuilderinterface.h>
 
 #include <bfgpalayout.h>
 #include <hve/arch/intel_x64/vcpu.h>
+#include <hve/arch/intel_x64/xen/xen_op.h>
 
 //------------------------------------------------------------------------------
 // Fault Handlers
@@ -118,9 +120,11 @@ vcpu::vcpu(
     this->set_eptp(domain->ept());
 
     if (this->is_dom0()) {
+        bfdebug_info(0, "setting dom0 guest state");
         this->write_dom0_guest_state(domain);
     }
     else {
+        bfdebug_info(0, "setting domU guest state");
         this->write_domU_guest_state(domain);
     }
 }
@@ -132,7 +136,10 @@ vcpu::vcpu(
 void
 vcpu::write_dom0_guest_state(domain *domain)
 {
-    vtd::visr_device::enable(this, g_pci_pt_bus, g_pci_pt_dev, g_pci_pt_fun);
+    vtd::visr_device::enable(this,
+                             PCI_PT_BUS,
+                             PCI_PT_DEV,
+                             PCI_PT_FUN);
 }
 
 void
@@ -160,6 +167,13 @@ vcpu::is_domU() const
 domain::domainid_type
 vcpu::domid() const
 { return m_domain->id(); }
+
+domain *
+vcpu::dom()
+{ return m_domain; }
+
+std::vector<e820_entry_t> &
+vcpu::e820_map() { return m_domain->e820_map(); }
 
 //------------------------------------------------------------------------------
 // VMCall
@@ -263,7 +277,15 @@ vcpu::apic_timer_vector()
 
 void
 vcpu::set_exec_mode(uint64_t exec_mode)
-{ m_exec_mode = exec_mode; }
+{
+    bfdebug_info(0, "setting exec_mode");
+    m_exec_mode = exec_mode;
+
+    if (exec_mode == VM_EXEC_XENPVH) {
+        m_xapic = std::make_unique<xapic>(this);
+        m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
+    }
+}
 
 void
 vcpu::setup_default_controls()

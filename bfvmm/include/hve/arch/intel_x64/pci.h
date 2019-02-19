@@ -1,23 +1,20 @@
 //
-// Copyright (C) 2019 Assured Information Security, Inc.
+// Bareflank Hyperkernel
+// Copyright (C) 2018 Assured Information Security, Inc.
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 2.1 of the License, or (at your option) any later version.
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Lesser General Public License for more details.
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #ifndef PCI_INTEL_X64_BOXY_H
 #define PCI_INTEL_X64_BOXY_H
@@ -26,13 +23,22 @@
 #include <array>
 #include <list>
 #include <intrinsics.h>
+#include <hve/arch/intel_x64/vcpu.h>
 
 namespace boxy::intel_x64
 {
 
-#define NIC_BUS 0x2
-#define NIC_DEV 0x0
-#define NIC_FUN 0x0
+#ifndef PCI_PT_BUS
+#define PCI_PT_BUS 0
+#endif
+
+#ifndef PCI_PT_DEV
+#define PCI_PT_DEV 0x14
+#endif
+
+#ifndef PCI_PT_FUN
+#define PCI_PT_FUN 0x03
+#endif
 
 using namespace ::x64::portio;
 using namespace bfvmm::intel_x64;
@@ -78,10 +84,13 @@ inline uint32_t bdf_to_cf8(uint32_t b, uint32_t d, uint32_t f)
 
 inline bool domU_owned_cf8(uint32_t cf8)
 {
-    return cf8_to_bus(cf8) == NIC_BUS &&
-           cf8_to_dev(cf8) == NIC_DEV &&
-           cf8_to_fun(cf8) == NIC_FUN;
+    return cf8_to_bus(cf8) == PCI_PT_BUS &&
+           cf8_to_dev(cf8) == PCI_PT_DEV &&
+           cf8_to_fun(cf8) == PCI_PT_FUN;
 }
+
+inline bool cf8_exists(uint32_t cf8)
+{ return cf8_read_reg(cf8, 0) != 0xFFFFFFFF; }
 
 enum pci_header_t {
     pci_hdr_normal               = 0x00,
@@ -123,7 +132,6 @@ enum pci_subclass_bridge_t {
     pci_sc_bridge_other = 0x80
 };
 
-
 inline uint32_t pci_header_type(uint32_t cf8)
 {
     const auto val = cf8_read_reg(cf8, 3);
@@ -143,7 +151,9 @@ inline uint32_t pci_phys_read(uint32_t addr, uint32_t port, uint32_t size)
     }
 }
 
-inline void pci_info_in(uint32_t cf8, io_instruction_handler::info_t &info)
+inline void pci_info_in(
+    uint32_t cf8,
+    bfvmm::intel_x64::io_instruction_handler::info_t &info)
 { info.val = pci_phys_read(cf8, info.port_number, info.size_of_access); }
 
 inline bool is_host_bridge(uint32_t cf8)
@@ -165,7 +175,35 @@ inline void bferror_dump_cf8(int level, uint32_t cf8)
     bferror_subnhex(level, "off", cf8_to_off(cf8));
 }
 
-inline void debug_pci_in(uint32_t cf8, io_instruction_handler::info_t &info)
+using probe_t = delegate<void(uint32_t)>;
+
+inline void probe_bus(uint32_t b, probe_t probe)
+{
+    for (auto d = 0; d < 32; d++) {
+        for (auto f = 0; f < 8; f++) {
+            auto cf8 = bdf_to_cf8(b, d, f);
+            if (cf8_read_reg(cf8, 0) == 0xFFFFFFFF) {
+                continue;
+            }
+
+            // Call the probe callback for each valid device/vendor
+            probe(cf8);
+
+            switch (pci_header_type(cf8)) {
+            case pci_hdr_pci_bridge:
+            case pci_hdr_pci_bridge_multi: {
+                auto child = (cf8_read_reg(cf8, 0x6) & 0xFF00) >> 8;
+                probe_bus(child, probe);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+}
+
+inline void debug_pci_in(uint32_t cf8, bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     const char *port = "";
 
@@ -196,7 +234,7 @@ inline void debug_pci_in(uint32_t cf8, io_instruction_handler::info_t &info)
     }
 }
 
-inline void debug_pci_out(uint32_t cf8, io_instruction_handler::info_t &info)
+inline void debug_pci_out(uint32_t cf8, bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     const char *port = "";
 
@@ -264,7 +302,7 @@ inline void pci_phys_write(uint32_t addr,
 }
 
 inline void
-pci_info_out(uint32_t cf8, const io_instruction_handler::info_t &info)
+pci_info_out(uint32_t cf8, const bfvmm::intel_x64::io_instruction_handler::info_t &info)
 {
     pci_phys_write(cf8,
                    info.port_number,
