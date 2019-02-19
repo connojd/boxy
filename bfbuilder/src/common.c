@@ -742,7 +742,7 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
 
     ret |= setup_acpi(vm);
     ret |= setup_cmdline(vm, args);
-    ret |= setup_e820_map(vm, vm->size, vm->load_gpa);
+    //ret |= setup_e820_map(vm, vm->size, vm->load_gpa);
     ret |= setup_entry_point(vm);
 
     ret |= setup_pvh_console(vm);
