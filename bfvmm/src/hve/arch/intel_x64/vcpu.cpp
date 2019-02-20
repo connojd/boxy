@@ -115,11 +115,9 @@ vcpu::vcpu(
     this->set_eptp(domain->ept());
 
     if (this->is_dom0()) {
-        bfdebug_info(0, "setting dom0 guest state");
         this->write_dom0_guest_state(domain);
     }
     else {
-        bfdebug_info(0, "setting domU guest state");
         this->write_domU_guest_state(domain);
     }
 }
@@ -140,12 +138,7 @@ vcpu::write_dom0_guest_state(domain *domain)
 void
 vcpu::write_domU_guest_state(domain *domain)
 {
-    if (m_exec_mode == VM_EXEC_XENPVH) {
-        this->setup_xenpvh_register_state();
-    } else {
-        this->setup_default_register_state();
-    }
-
+    this->setup_default_register_state();
     this->setup_default_controls();
     this->setup_default_handlers();
 
@@ -281,9 +274,14 @@ vcpu::set_exec_mode(uint64_t exec_mode)
     m_exec_mode = exec_mode;
 
     if (exec_mode == VM_EXEC_XENPVH) {
+        bfdebug_info(0, "setting exec_mode");
         m_xapic = std::make_unique<xapic>(this);
         m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
+        bfdebug_info(0, "setting exec_mode: calling init_xenpvh");
         m_domain->init_xenpvh();
+        bfdebug_info(0, "setting exec_mode: calling init_xenpvh done");
+        this->setup_xenpvh_register_state();
+        bfdebug_info(0, "setting exec_mode done");
     }
 }
 
@@ -432,7 +430,7 @@ vcpu::setup_xenpvh_register_state()
     guest_cr0::set(cr0);
     guest_cr4::set(cr4);
 
-    //vm_entry_controls::ia_32e_mode_guest::disable();
+    vm_entry_controls::ia_32e_mode_guest::disable();
 
     unsigned es_index = 3;
     unsigned cs_index = 2;
@@ -482,12 +480,12 @@ vcpu::setup_xenpvh_register_state()
     m_xapic->init();
 
     using namespace primary_processor_based_vm_execution_controls;
-//    hlt_exiting::enable();
-//    rdpmc_exiting::enable();
+    hlt_exiting::enable();
+    rdpmc_exiting::enable();
 
     using namespace secondary_processor_based_vm_execution_controls;
-//    enable_invpcid::disable();
-//    enable_xsaves_xrstors::disable();
+    enable_invpcid::disable();
+    enable_xsaves_xrstors::disable();
 
     this->set_rip(m_domain->rip());
     this->set_rbx(PVH_START_INFO_GPA);

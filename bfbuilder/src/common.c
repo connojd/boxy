@@ -59,6 +59,9 @@ struct vm_t {
     char *cmdline;
 
     uint64_t *gdt;
+    void *tss;
+    void *idt;
+    uint32_t *xapic;
 
     char *addr;
     uint64_t size;
@@ -925,6 +928,122 @@ setup_32bit_gdt(struct vm_t *vm)
 }
 
 static status_t
+xenpvh_setup_idt(struct vm_t *vm)
+{
+    vm->idt = bfalloc_page(void);
+    if (vm->idt == 0) {
+        BFDEBUG("xenpvh_setup_idt: failed to alloc idt\n");
+        return FAILURE;
+    }
+
+    return donate_page_r(vm, vm->idt, INITIAL_IDT_GPA);
+}
+
+static status_t
+xenpvh_setup_tss(struct vm_t *vm)
+{
+    vm->tss = bfalloc_page(void);
+    if (vm->tss == 0) {
+        BFDEBUG("xenpvh_setup_tss: failed to alloc tss\n");
+        return FAILURE;
+    }
+
+    return donate_page_rw(vm, vm->tss, INITIAL_TSS_GPA);
+}
+
+static status_t
+xenpvh_setup_gdt(struct vm_t *vm)
+{
+    vm->gdt = bfalloc_page(void);
+    if (vm->gdt == 0) {
+        BFDEBUG("xenpvh_setup_gdt: failed to alloc gdt\n");
+        return FAILURE;
+    }
+
+    set_gdt_entry(&vm->gdt[0], 0, 0, 0);
+    set_gdt_entry(&vm->gdt[1], 0, 0, 0);
+    set_gdt_entry(&vm->gdt[2], 0, 0xFFFFFFFF, 0xc09b);
+    set_gdt_entry(&vm->gdt[3], 0, 0xFFFFFFFF, 0xc093);
+    set_gdt_entry(&vm->gdt[4], INITIAL_TSS_GPA, 0x1000, 0x008b);
+
+    return donate_page_r(vm, vm->gdt, INITIAL_GDT_GPA);
+}
+
+static status_t
+xenpvh_setup_register_state(struct vm_t *vm)
+{
+    /**
+     * Notes:
+     *
+     * The instructions for the initial register state for a PVH Linux
+     * kernel can be found here:
+     *     linux/arch/x86/xen/xen-pvh.S
+     */
+
+    status_t ret = SUCCESS;
+
+    ret |= __domain_op__set_rbx(vm->domainid, PVH_START_INFO_GPA);
+//    ret |= __domain_op__set_gdt_base(vm->domainid, INITIAL_GDT_GPA);
+//    ret |= __domain_op__set_gdt_limit(vm->domainid, 32);
+//
+//    ret |= __domain_op__set_cr0(vm->domainid, 0x10037);
+//    ret |= __domain_op__set_cr3(vm->domainid, 0x0);
+//    ret |= __domain_op__set_cr4(vm->domainid, 0x02000);
+//
+//    ret |= __domain_op__set_es_selector(vm->domainid, 0x18);
+//    ret |= __domain_op__set_es_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_es_limit(vm->domainid, 0xFFFFFFFF);
+//    ret |= __domain_op__set_es_access_rights(vm->domainid, 0xc093);
+//
+//    ret |= __domain_op__set_cs_selector(vm->domainid, 0x10);
+//    ret |= __domain_op__set_cs_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_cs_limit(vm->domainid, 0xFFFFFFFF);
+//    ret |= __domain_op__set_cs_access_rights(vm->domainid, 0xc09b);
+//
+//    ret |= __domain_op__set_ss_selector(vm->domainid, 0x18);
+//    ret |= __domain_op__set_ss_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_ss_limit(vm->domainid, 0xFFFFFFFF);
+//    ret |= __domain_op__set_ss_access_rights(vm->domainid, 0xc093);
+//
+//    ret |= __domain_op__set_ds_selector(vm->domainid, 0x18);
+//    ret |= __domain_op__set_ds_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_ds_limit(vm->domainid, 0xFFFFFFFF);
+//    ret |= __domain_op__set_ds_access_rights(vm->domainid, 0xc093);
+//
+//    ret |= __domain_op__set_fs_selector(vm->domainid, 0x0);
+//    ret |= __domain_op__set_fs_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_fs_limit(vm->domainid, 0x0);
+//    ret |= __domain_op__set_fs_access_rights(vm->domainid, 0x10000);
+//
+//    ret |= __domain_op__set_gs_selector(vm->domainid, 0x0);
+//    ret |= __domain_op__set_gs_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_gs_limit(vm->domainid, 0x0);
+//    ret |= __domain_op__set_gs_access_rights(vm->domainid, 0x10000);
+//
+//    ret |= __domain_op__set_tr_selector(vm->domainid, 0x0);
+//    ret |= __domain_op__set_tr_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_tr_limit(vm->domainid, 0x0);
+//    ret |= __domain_op__set_tr_access_rights(vm->domainid, 0x008b);
+//
+//    ret |= __domain_op__set_ldtr_selector(vm->domainid, 0x0);
+//    ret |= __domain_op__set_ldtr_base(vm->domainid, 0x0);
+//    ret |= __domain_op__set_ldtr_limit(vm->domainid, 0x0);
+//    ret |= __domain_op__set_ldtr_access_rights(vm->domainid, 0x10000);
+//
+//    if (ret != SUCCESS) {
+//        BFDEBUG("setup_entry: setup_32bit_register_state failed\n");
+//        return FAILURE;
+//    }
+//
+//    ret = setup_32bit_gdt(vm);
+//    if (ret != SUCCESS) {
+//        return ret;
+//    }
+
+    return SUCCESS;
+}
+
+static status_t
 native_setup_32bit_register_state(struct vm_t *vm)
 {
     /**
@@ -937,7 +1056,6 @@ native_setup_32bit_register_state(struct vm_t *vm)
 
     status_t ret = SUCCESS;
 
-    ret |= __domain_op__set_rip(vm->domainid, vm->entry_gpa);
     ret |= __domain_op__set_rsi(vm->domainid, BOOT_PARAMS_PAGE_GPA);
 
     ret |= __domain_op__set_gdt_base(vm->domainid, INITIAL_GDT_GPA);
@@ -1009,10 +1127,14 @@ setup_32bit_register_state(struct vm_t *vm)
     }
 
     if (vm->exec_mode == VM_EXEC_NATIVE) {
-        return native_setup_32bit_register_state(vm);
+        ret |= native_setup_32bit_register_state(vm);
+    } else if (vm->exec_mode == VM_EXEC_XENPVH) {
+        ret |= xenpvh_setup_idt(vm);
+        ret |= xenpvh_setup_tss(vm);
+        ret |= xenpvh_setup_gdt(vm);
     }
 
-    return FAILURE;
+    return ret;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1032,42 +1154,50 @@ common_create_vm(
         return COMMON_NO_HYPERVISOR;
     }
 
+    BFDEBUG("creating domain\n");
     vm->domainid = __domain_op__create_domain();
     if (vm->domainid == INVALID_DOMAINID) {
         BFDEBUG("__domain_op__create_domain failed\n");
         return COMMON_CREATE_VM_FROM_BZIMAGE_FAILED;
     }
 
+    BFDEBUG("setup_kernel\n");
     ret = setup_kernel(vm, args);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("setup_bios_ram\n");
     ret = setup_bios_ram(vm);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("setup_reserved_free\n");
     ret = setup_reserved_free(vm);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("setup_32bit_reg state\n");
     ret = setup_32bit_register_state(vm);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("setup_uart\n");
     ret = setup_uart(vm, args->uart);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("setup_pt_uart\n");
     ret = setup_pt_uart(vm, args->pt_uart);
     if (ret != SUCCESS) {
         return ret;
     }
 
+    BFDEBUG("domid %d\n", vm->domainid);
     args->domainid = vm->domainid;
     return SUCCESS;
 }
