@@ -312,8 +312,9 @@ public:
     /// @ensures
     ///
     /// Set the execution mode of the vcpu.
+    /// One of VM_EXEC_NATIVE or VM_EXEC_XENPVH.
     ///
-    /// @param mode the mode this guest is running with
+    /// @param mode the mode this vcpu is running with
     ///
     void set_exec_mode(uint64_t mode);
 
@@ -323,6 +324,7 @@ public:
 
     void queue_timer_interrupt() { this->queue_external_interrupt(m_timer_vec); }
     void set_timer_vector(uint64_t vector) { m_timer_vec = vector; }
+    uint64_t xapic_hpa() { return m_domain->xapic_hpa(); }
 
 private:
 

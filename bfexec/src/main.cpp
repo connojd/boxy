@@ -272,7 +272,6 @@ create_vm(const args_type &args)
     dump_vm_create_verbose();
 
     g_domainid = ioctl_args.domainid;
-    __vcpu_op__set_exec_mode(g_vcpuid, ioctl_args.exec_mode);
 }
 
 // -----------------------------------------------------------------------------

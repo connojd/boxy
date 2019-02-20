@@ -131,6 +131,7 @@ __uart_ndec_op(uint16_t port, uint64_t val)
 #define __enum_domain_op__set_uart 0xBF02000000000200
 #define __enum_domain_op__set_pt_uart 0xBF02000000000201
 #define __enum_domain_op__dump_uart 0xBF02000000000202
+#define __enum_domain_op__set_exec_mode 0xBF02000000000203
 
 #define __enum_domain_op__share_page_r 0xBF02000000000300
 #define __enum_domain_op__share_page_rw 0xBF02000000000301
@@ -281,6 +282,17 @@ __domain_op__destroy_domain(domainid_t foreign_domainid)
     );
 
     return ret == 0 ? SUCCESS : FAILURE;
+}
+
+static inline status_t
+__domain_op__set_exec_mode(domainid_t foreign_domainid, uint64_t mode)
+{
+    return _vmcall(
+        __enum_domain_op__set_exec_mode,
+        foreign_domainid,
+        mode,
+        0
+    );
 }
 
 static inline status_t
@@ -555,7 +567,6 @@ __domain_op__set_reg(ldtr_access_rights)
 #define __enum_vcpu_op__create_vcpu 0xBF03000000000100
 #define __enum_vcpu_op__kill_vcpu 0xBF03000000000101
 #define __enum_vcpu_op__destroy_vcpu 0xBF03000000000102
-#define __enum_vcpu_op__set_exec_mode 0xBF03000000000103
 
 static inline vcpuid_t
 __vcpu_op__create_vcpu(domainid_t domainid)
@@ -586,17 +597,6 @@ __vcpu_op__destroy_vcpu(vcpuid_t vcpuid)
         __enum_vcpu_op__destroy_vcpu,
         vcpuid,
         0,
-        0
-    );
-}
-
-static inline vcpuid_t
-__vcpu_op__set_exec_mode(vcpuid_t vcpuid, uint64_t exec_mode)
-{
-    return _vmcall(
-        __enum_vcpu_op__set_exec_mode,
-        vcpuid,
-        exec_mode,
         0
     );
 }

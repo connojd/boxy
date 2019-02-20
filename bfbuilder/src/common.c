@@ -772,7 +772,7 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
     ret |= setup_acpi(vm);
     ret |= setup_cmdline(vm, args);
     ret |= setup_entry_point(vm);
-    //ret |= setup_pvh_xapic(vm);
+    ret |= setup_pvh_xapic(vm);
     ret |= setup_pvh_console(vm);
     ret |= setup_pvh_start_info(vm, args);
 
@@ -872,6 +872,9 @@ setup_reserved_free(struct vm_t *vm)
     }
 
     ret = donate_page_to_page_range(vm, vm->zero_page, addr, size);
+
+    BFDEBUG("rsvd1 range: [%llx,%llx)\n", addr, addr + size);
+
     if (ret != SUCCESS) {
         return ret;
     }
@@ -888,6 +891,7 @@ setup_reserved_free(struct vm_t *vm)
 
     ret = donate_page_to_page_range(
         vm, vm->zero_page, RESERVED2_ADDR, vm->load_gpa - RESERVED2_ADDR);
+    BFDEBUG("rsvd2 range: [%llx,%llx)\n", RESERVED2_ADDR, RESERVED2_ADDR + vm->load_gpa - RESERVED2_ADDR);
     if (ret != SUCCESS) {
         return ret;
     }
@@ -1102,6 +1106,8 @@ common_create_vm(
         BFDEBUG("__domain_op__create_domain failed\n");
         return COMMON_CREATE_VM_FROM_BZIMAGE_FAILED;
     }
+
+    __domain_op__set_exec_mode(vm->domainid, args->exec_mode);
 
     BFDEBUG("setup_kernel\n");
     ret = setup_kernel(vm, args);

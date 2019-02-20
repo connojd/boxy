@@ -148,7 +148,7 @@ private:
 
     vcpu *m_vcpu;
 
-    page_ptr<uint32_t> m_xapic_page;
+    bfvmm::x64::unique_map<uint32_t> m_xapic_ump;
     gsl::span<uint32_t> m_xapic_view;
 };
 

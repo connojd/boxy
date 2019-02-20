@@ -35,16 +35,13 @@ namespace lapic_n = ::intel_x64::lapic;
 
 xapic::xapic(gsl::not_null<vcpu *> vcpu) :
     m_vcpu{vcpu},
-    m_xapic_page{make_page<uint32_t>()},
-    m_xapic_view{m_xapic_page.get(), 0x1000 / 4}
+    m_xapic_ump{vcpu->map_hpa_4k<uint32_t>(vcpu->xapic_hpa())},
+    m_xapic_view{m_xapic_ump.get(), 0x1000 / 4}
 { }
 
 void
 xapic::init()
 {
-    auto hpa = g_mm->virtptr_to_physint(m_xapic_page.get());
-    m_vcpu->map_4k_ro(this->base(), hpa);
-
     this->write(lapic_n::id::indx, lapic_n::id::reset_val);
     this->write(lapic_n::version::indx, lapic_n::version::reset_val);
     this->write(lapic_n::dfr::indx, lapic_n::dfr::reset_val);

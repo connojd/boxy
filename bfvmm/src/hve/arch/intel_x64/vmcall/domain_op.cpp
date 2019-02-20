@@ -70,6 +70,24 @@ vmcall_domain_op_handler::domain_op__destroy_domain(
 }
 
 void
+vmcall_domain_op_handler::domain_op__set_exec_mode(
+    gsl::not_null<vcpu *> vcpu)
+{
+    try {
+        if (vcpu->rbx() == self || vcpu->rbx() == vcpu->domid()) {
+            throw std::runtime_error(
+                "domain_op__set_exec_mode: self not supported");
+        }
+
+        get_domain(vcpu->rbx())->set_exec_mode(vcpu->rcx());
+        vcpu->set_rax(SUCCESS);
+    }
+    catchall({
+        vcpu->set_rax(FAILURE);
+    })
+}
+
+void
 vmcall_domain_op_handler::domain_op__set_uart(
     gsl::not_null<vcpu *> vcpu)
 {
@@ -215,6 +233,8 @@ vmcall_domain_op_handler::domain_op__donate_page_r(
             vcpu->gpa_to_hpa(vcpu->rcx());
 
         get_domain(vcpu->rbx())->map_4k_r(vcpu->rdx(), hpa);
+        get_domain(vcpu->rbx())->process_donated_page(vcpu->rdx(), hpa);
+
         vcpu->set_rax(SUCCESS);
     }
     catchall({
@@ -441,6 +461,7 @@ vmcall_domain_op_handler::dispatch(
         dispatch_case(create_domain)
         dispatch_case(destroy_domain)
 
+        dispatch_case(set_exec_mode)
         dispatch_case(set_uart)
         dispatch_case(set_pt_uart)
         dispatch_case(dump_uart)
