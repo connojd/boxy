@@ -129,12 +129,12 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //    EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_ndec, xen_debug_ndec_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_nhex, xen_debug_nhex_wrmsr_handler);
-//
+
     EMULATE_CPUID(XEN_CPUID_LEAF(0), xen_cpuid_leaf1_handler);
-//    EMULATE_CPUID(XEN_CPUID_LEAF(1), xen_cpuid_leaf2_handler);
-//    EMULATE_CPUID(XEN_CPUID_LEAF(2), xen_cpuid_leaf3_handler);
-//    EMULATE_CPUID(XEN_CPUID_LEAF(4), xen_cpuid_leaf5_handler);
-//
+    EMULATE_CPUID(XEN_CPUID_LEAF(1), xen_cpuid_leaf2_handler);
+    EMULATE_CPUID(XEN_CPUID_LEAF(2), xen_cpuid_leaf3_handler);
+    EMULATE_CPUID(XEN_CPUID_LEAF(4), xen_cpuid_leaf5_handler);
+
 //    ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
 //    ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
 //    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
@@ -158,15 +158,15 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //    }
 
     domain->setup_vcpu_uarts(m_vcpu);
-//
-//    m_vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
-//    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
-//
+
+    m_vcpu->pass_through_msr_access(::x64::msrs::ia32_pat::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_efer::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_fs_base::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_gs_base::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_cs::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_eip::addr);
+    m_vcpu->pass_through_msr_access(::intel_x64::msrs::ia32_sysenter_esp::addr);
+
 //    // We effectively pass this through to the guest already
 //    // through the bfvmm::intel_x64::timer::tsc_freq_MHz
 //    m_vcpu->pass_through_msr_access(::intel_x64::msrs::platform_info::addr);

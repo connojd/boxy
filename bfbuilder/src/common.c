@@ -687,6 +687,7 @@ setup_pvh_start_info(struct vm_t *vm, struct create_vm_args *args)
     vm->pvh_start_info->version = 1;
     vm->pvh_start_info->cmdline_paddr = COMMAND_LINE_PAGE_GPA;
     vm->pvh_start_info->rsdp_paddr = ACPI_RSDP_GPA;
+    vm->pvh_start_info->flags = SIF_LOCAL_STORE | SIF_BFV_GUEST;
     // TODO SIF flags like LOCAL_STORE
 
     ret = setup_pvh_modlist(vm, args);
@@ -733,7 +734,7 @@ setup_pvh_xapic(struct vm_t *vm)
         return FAILURE;
     }
 
-    return donate_page_rw(vm, vm->xapic, XAPIC_GPA);
+    return donate_page_r(vm, vm->xapic, XAPIC_GPA);
 }
 
 static status_t

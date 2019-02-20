@@ -316,7 +316,7 @@ public:
     ///
     /// @param mode the mode this vcpu is running with
     ///
-    void set_exec_mode(uint64_t mode);
+    //void set_exec_mode(uint64_t mode);
 
     uint64_t lapicid() { return m_xapic->id(); }
     uint64_t lapic_base() { return m_xapic->base(); }

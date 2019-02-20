@@ -139,6 +139,15 @@ vcpu::write_domU_guest_state(domain *domain)
     this->setup_default_controls();
     this->setup_default_handlers();
 
+    if (domain->exec_mode() == VM_EXEC_XENPVH) {
+        expects(domain->xapic_hpa() != 0);
+        m_xapic = std::make_unique<xapic>(this);
+        m_xapic->init();
+
+        m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
+        //vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
+    }
+
     domain->setup_vcpu_uarts(this);
 }
 
@@ -265,19 +274,19 @@ vcpu::apic_timer_vector()
 // Setup Functions
 //------------------------------------------------------------------------------
 
-void
-vcpu::set_exec_mode(uint64_t exec_mode)
-{
-    m_exec_mode = exec_mode;
-
-    if (exec_mode == VM_EXEC_XENPVH) {
-        m_xapic = std::make_unique<xapic>(this);
-        m_xapic->init();
-
-        m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
-        //vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
-    }
-}
+//void
+//vcpu::set_exec_mode(uint64_t exec_mode)
+//{
+//    m_exec_mode = exec_mode;
+//
+//    if (exec_mode == VM_EXEC_XENPVH) {
+//        m_xapic = std::make_unique<xapic>(this);
+//        m_xapic->init();
+//
+//        m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
+//        //vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
+//    }
+//}
 
 void
 vcpu::setup_default_controls()
