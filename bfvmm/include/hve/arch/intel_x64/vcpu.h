@@ -329,7 +329,6 @@ private:
     void setup_default_controls();
     void setup_default_handlers();
     void setup_default_register_state();
-    void setup_xenpvh_register_state();
 
 private:
 

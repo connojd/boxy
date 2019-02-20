@@ -41,7 +41,6 @@ namespace boxy::intel_x64
 
 domain::domain(domainid_type domainid) :
     boxy::domain{domainid},
-    m_tss{make_page<bfvmm::x64::tss>()},
     m_did{domainid}
 {
     if (domainid == 0) {
@@ -75,28 +74,6 @@ domain::setup_dom0()
 void
 domain::setup_domU()
 { }
-
-void
-domain::init_xenpvh()
-{
-    using namespace ::x64::access_rights;
-
-    m_gdt_phys = g_mm->virtint_to_physint(m_gdt.base());
-    m_idt_phys = g_mm->virtint_to_physint(m_idt.base());
-    m_tss_phys = g_mm->virtptr_to_physint(m_tss.get());
-
-    m_gdt_virt = INITIAL_GDT_GPA;
-    m_idt_virt = INITIAL_IDT_GPA;
-    m_tss_virt = INITIAL_TSS_GPA;
-
-    m_gdt.set(2, nullptr, 0xFFFFFFFF, 0xc09b);
-    m_gdt.set(3, nullptr, 0xFFFFFFFF, 0xc093);
-    m_gdt.set(4, m_tss_virt, sizeof(m_tss), 0x008b);
-
-    m_ept_map.map_4k(m_tss_virt, m_tss_phys, ept::mmap::attr_type::read_write);
-//    m_ept_map.map_4k(m_gdt_virt, m_gdt_phys, ept::mmap::attr_type::read_only);
-//    m_ept_map.map_4k(m_idt_virt, m_idt_phys, ept::mmap::attr_type::read_only);
-}
 
 void
 domain::map_1g_r(uintptr_t gpa, uintptr_t hpa)

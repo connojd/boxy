@@ -437,11 +437,6 @@ public:
     std::vector<e820_entry_t> &e820_map()
     { return m_e820_map; }
 
-    bfvmm::x64::gdt *gdt()
-    { return &m_gdt; }
-
-    void init_xenpvh();
-
 private:
 
     void setup_dom0();
@@ -521,20 +516,7 @@ private:
     uint64_t m_ldtr_limit{};
     uint64_t m_ldtr_access_rights{};
 
-    bfvmm::x64::gdt m_gdt{512};
-    bfvmm::x64::idt m_idt{256};
-
     uint64_t m_did{};
-
-    uint64_t m_tss_phys{};
-    uint64_t m_gdt_phys{};
-    uint64_t m_idt_phys{};
-
-    uint64_t m_tss_virt{};
-    uint64_t m_gdt_virt{};
-    uint64_t m_idt_virt{};
-
-    page_ptr<bfvmm::x64::tss> m_tss;
 
 public:
 

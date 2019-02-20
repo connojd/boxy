@@ -62,6 +62,7 @@ public:
     /// @cond
     ///
     explicit xapic(gsl::not_null<vcpu *> vcpu);
+    xapic() = default;
 
     /// @endcond
 

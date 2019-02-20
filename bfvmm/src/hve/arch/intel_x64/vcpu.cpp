@@ -129,10 +129,7 @@ vcpu::vcpu(
 void
 vcpu::write_dom0_guest_state(domain *domain)
 {
-    vtd::visr_device::enable(this,
-                             PCI_PT_BUS,
-                             PCI_PT_DEV,
-                             PCI_PT_FUN);
+    vtd::visr_device::enable(this, PCI_PT_BUS, PCI_PT_DEV, PCI_PT_FUN);
 }
 
 void
@@ -274,14 +271,11 @@ vcpu::set_exec_mode(uint64_t exec_mode)
     m_exec_mode = exec_mode;
 
     if (exec_mode == VM_EXEC_XENPVH) {
-        bfdebug_info(0, "setting exec_mode");
         m_xapic = std::make_unique<xapic>(this);
+        m_xapic->init();
+
         m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
-        bfdebug_info(0, "setting exec_mode: calling init_xenpvh");
-        m_domain->init_xenpvh();
-        bfdebug_info(0, "setting exec_mode: calling init_xenpvh done");
-        this->setup_xenpvh_register_state();
-        bfdebug_info(0, "setting exec_mode done");
+        //vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
     }
 }
 
@@ -405,92 +399,6 @@ vcpu::setup_default_register_state()
 
     guest_rflags::set(2);
     vmcs_link_pointer::set(0xFFFFFFFFFFFFFFFF);
-}
-
-void
-vcpu::setup_xenpvh_register_state()
-{
-    using namespace ::intel_x64;
-    using namespace ::intel_x64::vmcs;
-    using namespace ::intel_x64::cpuid;
-
-    using namespace ::x64::access_rights;
-    using namespace ::x64::segment_register;
-
-    uint64_t cr0 = guest_cr0::get();
-    cr0 |= cr0::protection_enable::mask;
-    cr0 |= cr0::monitor_coprocessor::mask;
-    cr0 |= cr0::extension_type::mask;
-    cr0 |= cr0::numeric_error::mask;
-    cr0 |= cr0::write_protect::mask;
-
-    uint64_t cr4 = guest_cr4::get();
-    cr4 |= cr4::vmx_enable_bit::mask;
-
-    guest_cr0::set(cr0);
-    guest_cr4::set(cr4);
-
-    vm_entry_controls::ia_32e_mode_guest::disable();
-
-    unsigned es_index = 3;
-    unsigned cs_index = 2;
-    unsigned ss_index = 3;
-    unsigned ds_index = 3;
-    unsigned fs_index = 3;
-    unsigned gs_index = 3;
-    unsigned tr_index = 4;
-
-    guest_es_selector::set(es_index << 3);
-    guest_cs_selector::set(cs_index << 3);
-    guest_ss_selector::set(ss_index << 3);
-    guest_ds_selector::set(ds_index << 3);
-    guest_fs_selector::set(fs_index << 3);
-    guest_gs_selector::set(gs_index << 3);
-    guest_tr_selector::set(tr_index << 3);
-
-    guest_es_limit::set(m_domain->gdt()->limit(es_index));
-    guest_cs_limit::set(m_domain->gdt()->limit(cs_index));
-    guest_ss_limit::set(m_domain->gdt()->limit(ss_index));
-    guest_ds_limit::set(m_domain->gdt()->limit(ds_index));
-    guest_fs_limit::set(m_domain->gdt()->limit(fs_index));
-    guest_gs_limit::set(m_domain->gdt()->limit(gs_index));
-    guest_tr_limit::set(m_domain->gdt()->limit(tr_index));
-
-    guest_es_access_rights::set(m_domain->gdt()->access_rights(es_index));
-    guest_cs_access_rights::set(m_domain->gdt()->access_rights(cs_index));
-    guest_ss_access_rights::set(m_domain->gdt()->access_rights(ss_index));
-    guest_ds_access_rights::set(m_domain->gdt()->access_rights(ds_index));
-    guest_fs_access_rights::set(m_domain->gdt()->access_rights(fs_index));
-    guest_gs_access_rights::set(m_domain->gdt()->access_rights(gs_index));
-    guest_tr_access_rights::set(m_domain->gdt()->access_rights(tr_index));
-
-    guest_ldtr_access_rights::set(guest_ldtr_access_rights::unusable::mask);
-
-    guest_es_base::set(m_domain->gdt()->base(es_index));
-    guest_cs_base::set(m_domain->gdt()->base(cs_index));
-    guest_ss_base::set(m_domain->gdt()->base(ss_index));
-    guest_ds_base::set(m_domain->gdt()->base(ds_index));
-    guest_fs_base::set(m_domain->gdt()->base(fs_index));
-    guest_gs_base::set(m_domain->gdt()->base(gs_index));
-    guest_tr_base::set(m_domain->gdt()->base(tr_index));
-
-    guest_rflags::set(2);
-    vmcs_link_pointer::set(0xFFFFFFFFFFFFFFFF);
-
-    m_xapic->init();
-
-    using namespace primary_processor_based_vm_execution_controls;
-    hlt_exiting::enable();
-    rdpmc_exiting::enable();
-
-    using namespace secondary_processor_based_vm_execution_controls;
-    enable_invpcid::disable();
-    enable_xsaves_xrstors::disable();
-
-    this->set_rip(m_domain->rip());
-    this->set_rbx(PVH_START_INFO_GPA);
-
-//    vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
 }
 
 }
