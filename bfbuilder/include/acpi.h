@@ -93,7 +93,7 @@ struct rsdp_t {
 
 struct xsdt_t {
     struct acpi_header_t    header;                     ///< Common ACPI table header
-    uint64_t                entries[2];                 ///< Array of pointers to ACPI tables
+    uint64_t                entries[3];                 ///< Array of pointers to ACPI tables
 };
 
 // -----------------------------------------------------------------------------
@@ -284,7 +284,7 @@ setup_xsdt(struct xsdt_t *xsdt)
             .aslcompilerid = {'n', 'o', 'n', 'e'},
             .aslcompilerrevision = 1
         },
-        .entries = {ACPI_MADT_GPA, ACPI_FADT_GPA}
+        .entries = {ACPI_MADT_GPA, ACPI_FADT_GPA, ACPI_MCFG_GPA}
     };
 
     *xsdt = s_xsdt;
@@ -423,6 +423,7 @@ setup_dsdt(struct dsdt_t *dsdt)
 static inline void
 setup_mcfg(struct mcfg_t *mcfg)
 {
+    // TODO: update the base address
     static struct mcfg_t s_mcfg = {
     	.signature = {'M', 'C', 'F', 'G'},
     	.length = sizeof(struct mcfg_t),

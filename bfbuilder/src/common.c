@@ -406,11 +406,12 @@ setup_acpi(struct vm_t *vm)
             return FAILURE;
         }
 
+        setup_mcfg(vm->mcfg);
+
         ret = donate_page_r(vm, vm->mcfg, ACPI_MCFG_GPA);
         if (ret != SUCCESS) {
             return ret;
         }
-        setup_mcfg(vm->mcfg);
     }
 
     return SUCCESS;
