@@ -95,7 +95,7 @@ public:
     ///
     /// @param entry the E820 map entry to add
     ///
-    void add_e820_entry(const e820_entry_t &entry);
+    void add_e820_entry(uintptr_t base, uintptr_t end, uint32_t type);
 
     /// Map 1g GPA to HPA (Read-Only)
     ///
@@ -462,8 +462,8 @@ public:
     global_state()
     { return &m_vcpu_global_state; }
 
-    std::vector<e820_entry_t> &e820_map()
-    { return m_e820_map; }
+    std::vector<e820_entry_t> &e820()
+    { return m_e820; }
 
 private:
 
@@ -547,6 +547,8 @@ private:
     uint64_t m_did{};
     uint64_t m_exec_mode{};
     uint64_t m_xapic_hpa{};
+
+    std::vector<e820_entry_t> m_e820;
 
 public:
 

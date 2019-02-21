@@ -80,6 +80,13 @@ domain::setup_domU()
 }
 
 void
+domain::add_e820_entry(uintptr_t base, uintptr_t end, uint32_t type)
+{
+    struct e820_entry_t ent = { base, end - base, type};
+    m_e820.push_back(ent);
+}
+
+void
 domain::process_donated_page(uintptr_t gpa, uintptr_t hpa)
 {
     if (m_did == 0) {

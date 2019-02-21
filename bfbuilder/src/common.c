@@ -60,8 +60,6 @@ struct vm_t {
 
     uint32_t *xapic;
     uint64_t *gdt;
-    //void *tss;
-    //void *idt;
 
     char *addr;
     uint64_t size;
@@ -777,6 +775,19 @@ setup_vmlinux(struct vm_t *vm, struct create_vm_args *args)
     ret |= setup_pvh_console(vm);
     ret |= setup_pvh_start_info(vm, args);
 
+    __domain_op__add_e820_entry(vm->domainid,
+                                0,
+                                0xE800,
+                                E820_TYPE_RAM);
+    __domain_op__add_e820_entry(vm->domainid,
+                                0xE800,
+                                vm->load_gpa,
+                                E820_TYPE_RESERVED);
+    __domain_op__add_e820_entry(vm->domainid,
+                                vm->load_gpa,
+                                vm->load_gpa + vm->size,
+                                E820_TYPE_RAM);
+
     ret |= donate_buffer(vm,
                          vm->elf_bin.exec,
                          vm->load_gpa,
@@ -892,7 +903,7 @@ setup_reserved_free(struct vm_t *vm)
 
     ret = donate_page_to_page_range(
         vm, vm->zero_page, RESERVED2_ADDR, vm->load_gpa - RESERVED2_ADDR);
-    BFDEBUG("rsvd2 range: [%llx,%llx)\n", RESERVED2_ADDR, RESERVED2_ADDR + vm->load_gpa - RESERVED2_ADDR);
+    BFDEBUG("rsvd2 range: [%x,%x)\n", RESERVED2_ADDR, RESERVED2_ADDR + vm->load_gpa - RESERVED2_ADDR);
     if (ret != SUCCESS) {
         return ret;
     }

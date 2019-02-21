@@ -126,7 +126,7 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //        handler_delegate_t::create<xen_op_handler, &xen_op_handler::exit_handler>(this)
 //    );
 //
-//    EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
+    EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_ndec, xen_debug_ndec_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_nhex, xen_debug_nhex_wrmsr_handler);
 
@@ -135,10 +135,10 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
     EMULATE_CPUID(XEN_CPUID_LEAF(2), xen_cpuid_leaf3_handler);
     EMULATE_CPUID(XEN_CPUID_LEAF(4), xen_cpuid_leaf5_handler);
 
-//    ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
-//    ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
+    ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
+    ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
 //    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
-//    ADD_VMCALL_HANDLER(HYPERVISOR_hvm_op);
+    ADD_VMCALL_HANDLER(HYPERVISOR_hvm_op);
 //    ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
 //    ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
 
@@ -1810,10 +1810,10 @@ xen_op_handler::HYPERVISOR_memory_op(gsl::not_null<vcpu *> vcpu)
     }
 
     switch (vcpu->rdi()) {
-        case XENMEM_decrease_reservation:
-            this->XENMEM_decrease_reservation_handler(vcpu);
-            return true;
-
+//        case XENMEM_decrease_reservation:
+//            this->XENMEM_decrease_reservation_handler(vcpu);
+//            return true;
+//
         case XENMEM_add_to_physmap:
             this->XENMEM_add_to_physmap_handler(vcpu);
             return true;
@@ -1858,28 +1858,27 @@ xen_op_handler::XENMEM_decrease_reservation_handler(vcpu *vcpu)
 
 }
 
+// TODO pass in from builder
 bool
 xen_op_handler::local_xenstore() const
 { return m_vcpu->id() == 0x10000; }
+// TODO pass in from builder
 
 void
 xen_op_handler::XENMEM_add_to_physmap_handler(vcpu *vcpu)
 {
     try {
-        auto xen_add_to_physmap_arg =
-            vcpu->map_arg<xen_add_to_physmap>(
-                vcpu->rsi()
-            );
+        auto arg = vcpu->map_arg<xen_add_to_physmap>(vcpu->rsi());
 
-        if (xen_add_to_physmap_arg->domid != DOMID_SELF) {
+        if (arg->domid != DOMID_SELF) {
             throw std::runtime_error("unsupported domid");
         }
 
-        switch (xen_add_to_physmap_arg->space) {
+        switch (arg->space) {
             case XENMAPSPACE_shared_info:
                 m_shared_info =
                     vcpu->map_gpa_4k<shared_info_t>(
-                        xen_add_to_physmap_arg->gpfn << ::x64::pt::page_shift
+                        arg->gpfn << ::x64::pt::page_shift
                     );
                 if (vmware_guest()) {
                     m_shared_info->vcpu_info[0].time.pad0 = SIF_BFV_GUEST;
@@ -1890,13 +1889,13 @@ xen_op_handler::XENMEM_add_to_physmap_handler(vcpu *vcpu)
                 break;
 
             case XENMAPSPACE_grant_table:
-                m_gnttab_op->mapspace_grant_table(xen_add_to_physmap_arg.get());
+                m_gnttab_op->mapspace_grant_table(arg.get());
                 break;
 
             default:
                 throw std::runtime_error(
                     "XENMEM_add_to_physmap: unknown space: " +
-                    std::to_string(xen_add_to_physmap_arg->space));
+                    std::to_string(arg->space));
         };
 
         vcpu->set_rax(SUCCESS);
@@ -1912,7 +1911,7 @@ xen_op_handler::XENMEM_memory_map_handler(vcpu *vcpu)
     try {
         auto map = vcpu->map_arg<xen_memory_map>(vcpu->rsi());
 
-        if (map->nr_entries < m_vcpu->e820_map().size()) {
+        if (map->nr_entries < vcpu->dom()->e820().size()) {
             throw std::runtime_error("guest E820 too small");
         }
 
@@ -1922,12 +1921,17 @@ xen_op_handler::XENMEM_memory_map_handler(vcpu *vcpu)
         auto e820 = vcpu->map_gva_4k<e820_entry_t>(addr, size);
         auto e820_view = gsl::span<e820_entry_t>(e820.get(), size);
 
+        //printf("E820: guest addr: 0x%lx\n", addr);
+
         map->nr_entries = 0;
-        for (const auto &entry : m_vcpu->e820_map()) {
+        for (const auto &entry : vcpu->dom()->e820()) {
             e820_view[map->nr_entries].addr = entry.addr;
             e820_view[map->nr_entries].size = entry.size;
             e820_view[map->nr_entries].type = entry.type;
             map->nr_entries++;
+            //printf("    addr: 0x%lx\n", entry.addr);
+            //printf("    size: 0x%lx\n", entry.size);
+            //printf("    type: 0x%x\n", entry.type);
         }
 
         vcpu->set_rax(SUCCESS);
@@ -1961,15 +1965,10 @@ xen_op_handler::HYPERVISOR_xen_version(gsl::not_null<vcpu *> vcpu)
 }
 
 void
-xen_op_handler::XENVER_get_features_handler(
-    vcpu *vcpu)
+xen_op_handler::XENVER_get_features_handler(vcpu *vcpu)
 {
     try {
-        auto info =
-            vcpu->map_arg<xen_feature_info>(
-                vcpu->rsi()
-            );
-
+        auto info = vcpu->map_arg<xen_feature_info>(vcpu->rsi());
         if (info->submap_idx >= XENFEAT_NR_SUBMAPS) {
             throw std::runtime_error("unknown Xen features submap");
         }
@@ -2289,20 +2288,20 @@ xen_op_handler::HYPERVISOR_hvm_op(gsl::not_null<vcpu *> vcpu)
     }
 
     switch (vcpu->rdi()) {
-        case HVMOP_set_param:
-            this->HVMOP_set_param_handler(vcpu);
-            return true;
+    case HVMOP_set_param:
+        this->HVMOP_set_param_handler(vcpu);
+        return true;
 
-        case HVMOP_get_param:
-            this->HVMOP_get_param_handler(vcpu);
-            return true;
+    case HVMOP_get_param:
+        this->HVMOP_get_param_handler(vcpu);
+        return true;
 
-        case HVMOP_pagetable_dying:
-            this->HVMOP_pagetable_dying_handler(vcpu);
-            return true;
+    case HVMOP_pagetable_dying:
+        this->HVMOP_pagetable_dying_handler(vcpu);
+        return true;
 
-        default:
-            break;
+    default:
+        break;
     };
 
     throw std::runtime_error("unknown HYPERVISOR_hvm_op opcode");
@@ -2313,18 +2312,15 @@ verify_callback_via(uint64_t via)
 {
     const auto from = 56U;
     const auto type = (via & HVM_PARAM_CALLBACK_IRQ_TYPE_MASK) >> from;
-
     if (type != HVM_PARAM_CALLBACK_TYPE_VECTOR) {
         throw std::invalid_argument(
-            "unsupported callback via type: " + std::to_string(via)
-        );
+            "unsupported callback via type: " + std::to_string(via));
     }
 
     const auto vector = via & 0xFFU;
     if (vector < 0x20U || vector > 0xFFU) {
         throw std::invalid_argument(
-            "invalid callback vector: " + std::to_string(vector)
-        );
+            "invalid callback vector: " + std::to_string(vector));
     }
 }
 
@@ -2335,19 +2331,18 @@ xen_op_handler::HVMOP_set_param_handler(vcpu *vcpu)
         auto arg = vcpu->map_arg<xen_hvm_param_t>(vcpu->rsi());
 
         switch (arg->index) {
-            case HVM_PARAM_CALLBACK_IRQ:
-                verify_callback_via(arg->value);
-                m_evtchn_op->set_callback_via(arg->value & 0xFFU);
-                vcpu->set_rax(SUCCESS);
-                break;
-
-            default:
-                bfalert_info(0, "Unsupported HVM set_param:");
-                bfalert_subnhex(0, "domid", arg->domid);
-                bfalert_subnhex(0, "index", arg->index);
-                bfalert_subnhex(0, "value", arg->value);
-                vcpu->set_rax(FAILURE);
-                break;
+        case HVM_PARAM_CALLBACK_IRQ:
+            verify_callback_via(arg->value);
+            m_evtchn_op->set_callback_via(arg->value & 0xFFU);
+            vcpu->set_rax(SUCCESS);
+            break;
+        default:
+            bfalert_info(0, "Unsupported HVM set_param:");
+            bfalert_subnhex(0, "domid", arg->domid);
+            bfalert_subnhex(0, "index", arg->index);
+            bfalert_subnhex(0, "value", arg->value);
+            vcpu->set_rax(FAILURE);
+            break;
         };
     }
     catchall({
@@ -2362,22 +2357,20 @@ xen_op_handler::HVMOP_get_param_handler(vcpu *vcpu)
         auto arg = vcpu->map_arg<xen_hvm_param_t>(vcpu->rsi());
 
         switch (arg->index) {
-            case HVM_PARAM_CONSOLE_EVTCHN:
-                arg->value = m_evtchn_op->bind_console();
-                vcpu->set_rax(FAILURE);
-                break;
-
-            case HVM_PARAM_CONSOLE_PFN:
-                m_console = vcpu->map_gpa_4k<uint8_t>(PVH_CONSOLE_GPA);
-                arg->value = PVH_CONSOLE_GPA >> x64::pt::page_shift;
-                break;
-
-            default:
-                bfdebug_info(0, "Unsupported HVM get_param:");
-                bfdebug_subnhex(0, "domid", arg->domid);
-                bfdebug_subnhex(0, "index", arg->index);
-                vcpu->set_rax(FAILURE);
-                return;
+        case HVM_PARAM_CONSOLE_EVTCHN:
+            arg->value = m_evtchn_op->bind_console();
+            vcpu->set_rax(FAILURE);
+            break;
+        case HVM_PARAM_CONSOLE_PFN:
+            m_console = vcpu->map_gpa_4k<uint8_t>(PVH_CONSOLE_GPA);
+            arg->value = PVH_CONSOLE_GPA >> x64::pt::page_shift;
+            break;
+        default:
+            bfdebug_info(0, "Unsupported HVM get_param:");
+            bfdebug_subnhex(0, "domid", arg->domid);
+            bfdebug_subnhex(0, "index", arg->index);
+            vcpu->set_rax(FAILURE);
+            return;
         }
 
         vcpu->set_rax(SUCCESS);

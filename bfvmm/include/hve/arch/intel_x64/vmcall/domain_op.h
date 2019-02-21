@@ -69,6 +69,7 @@ private:
     void domain_op__destroy_domain(gsl::not_null<vcpu *> vcpu);
 
     void domain_op__set_exec_mode(gsl::not_null<vcpu *> vcpu);
+    void domain_op__add_e820_entry(gsl::not_null<vcpu *> vcpu);
     void domain_op__set_uart(gsl::not_null<vcpu *> vcpu);
     void domain_op__set_pt_uart(gsl::not_null<vcpu *> vcpu);
     void domain_op__dump_uart(gsl::not_null<vcpu *> vcpu);

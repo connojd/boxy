@@ -142,13 +142,6 @@ public:
     ///
     domain::domainid_type domid() const;
 
-    /// E820 Map
-    ///
-    /// @return the E820 map associated with this vCPU. This is set by the
-    /// domain builder using hypercalls.
-    ///
-    std::vector<e820_entry_t> &e820_map();
-
     /// Domain
     ///
     /// @return the domain this vcpu belongs to
