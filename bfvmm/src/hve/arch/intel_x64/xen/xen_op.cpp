@@ -191,9 +191,6 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
     EMULATE_RDMSR(0x204, rdmsr_mtrr_physbase);
     EMULATE_RDMSR(0x205, rdmsr_mtrr_physmask);
 
-    EMULATE_RDMSR(0x206, rdmsr_mtrr_physbase);
-    EMULATE_RDMSR(0x207, rdmsr_mtrr_physmask);
-
     // MCG_CAP - MCE capability, status
     //EMULATE_RDMSR(0x179, rdmsr_zero_handler);
 
@@ -254,7 +251,10 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //    /// NMI assertion
 //    EMULATE_IO_INSTRUCTION(0x70, io_zero_handler, io_ignore_handler);
 //    EMULATE_IO_INSTRUCTION(0x71, io_zero_handler, io_ignore_handler);
-//
+
+    // Not sure what this one is, maybe pinctrl?
+    EMULATE_IO_INSTRUCTION(0x87, io_zero_handler, io_ignore_handler);
+
 //    /// Ports used for TSC calibration against the PIT. See
 //    /// arch/x86/kernel/tsc.c:pit_calibrate_tsc for detail.
 //    /// Note that these ports are accessed on the Intel NUC.
