@@ -1078,6 +1078,9 @@ xenpvh_setup_register_state(struct vm_t *vm)
     ret |= __domain_op__set_tr_limit(vm->domainid, 0x67);
     ret |= __domain_op__set_tr_access_rights(vm->domainid, 0x008b);
 
+    // PAT
+    ret |= __domain_op__set_ia32_pat(vm->domainid, 0x0606060606060606);
+
     return ret;
 }
 

@@ -64,6 +64,8 @@ public:
     pci_configuration_space_handler(
         gsl::not_null<vcpu *> vcpu);
 
+    pci_configuration_space_handler() = default;
+
     /// Destructor
     ///
     /// @expects

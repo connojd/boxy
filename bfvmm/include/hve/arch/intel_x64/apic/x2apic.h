@@ -65,6 +65,8 @@ public:
     x2apic_handler(
         gsl::not_null<vcpu *> vcpu);
 
+    x2apic_handler() = default;
+
     /// Destructor
     ///
     /// @expects

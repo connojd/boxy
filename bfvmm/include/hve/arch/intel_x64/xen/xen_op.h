@@ -65,6 +65,46 @@
 namespace boxy::intel_x64
 {
 
+/**
+ * MTRR range
+ *
+ * @base the base gpa of the range
+ * @size the size of the range in bytes
+ * @type the type of the range
+ */
+struct mtrr_range {
+    uint64_t base{};
+    uint64_t size{};
+    uint32_t type{};
+
+    mtrr_range(const struct e820_entry_t &entry)
+    {
+        base = entry.addr;
+        size = entry.size;
+
+        switch (entry.type) {
+        case E820_TYPE_RAM:
+        case E820_TYPE_RESERVED:
+            type = 6; // write-back
+            break;
+        }
+    }
+};
+
+/**
+ * size_to_physmask
+ *
+ * Convert the @size of a range to its corresponding value in a *valid* range.
+ * This is the inverse function of physmask_to_size found in the base
+ * hypervisor at bfvmm/src/hve/arch/intel_x64/mtrrs.cpp
+ *
+ */
+static uint64_t size_to_physmask(uint64_t size)
+{
+    static auto addr_size = ::x64::cpuid::addr_size::phys::get();
+    return (~(size - 1U) & ((1ULL << addr_size) - 1U)) | (1UL << 11);
+}
+
 class vcpu;
 
 class EXPORT_BOXY_HVE xen_op_handler
@@ -114,6 +154,17 @@ private:
         vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
     bool ia32_misc_enable_wrmsr_handler(
         vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info);
+
+    bool rdmsr_mtrr_cap(
+        vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
+    bool rdmsr_mtrr_def(
+        vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
+    bool wrmsr_mtrr_def(
+        vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info);
+    bool rdmsr_mtrr_physbase(
+        vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
+    bool rdmsr_mtrr_physmask(
+        vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
 
     bool ia32_apic_base_rdmsr_handler(
         vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info);
@@ -325,6 +376,11 @@ private:
 
     std::unique_ptr<boxy::intel_x64::evtchn_op> m_evtchn_op;
     std::unique_ptr<boxy::intel_x64::gnttab_op> m_gnttab_op;
+
+    std::vector<struct mtrr_range> m_mtrr;
+
+    // Default MTRR type is UC and MTRRs are enabled
+    uint64_t m_mtrr_def{(1UL << 11) | 0};
 
 public:
 

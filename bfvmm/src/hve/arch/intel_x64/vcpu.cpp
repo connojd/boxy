@@ -109,8 +109,8 @@ vcpu::vcpu(
     m_vmcall_domain_op_handler{this},
     m_vmcall_vcpu_op_handler{this},
 
-    m_x2apic_handler{this},
-    m_pci_configuration_space_handler{this}
+    m_x2apic_handler{},
+    m_pci_configuration_space_handler{}
 {
     this->set_eptp(domain->ept());
 
@@ -146,6 +146,10 @@ vcpu::write_domU_guest_state(domain *domain)
 
         m_xoh = std::make_unique<xen_op_handler>(this, m_domain);
         //vtd::dma_remapping::map_bus(2, 2, m_domain->ept());
+    } else {
+        m_x2apic_handler = x2apic_handler(this);
+        m_pci_configuration_space_handler = pci_configuration_space_handler(this);
+
     }
 
     domain->setup_vcpu_uarts(this);
@@ -265,7 +269,13 @@ vcpu::halt(const std::string &str)
 
 uint8_t
 vcpu::apic_timer_vector()
-{ return m_x2apic_handler.timer_vector(); }
+{
+    if (m_exec_mode == VM_EXEC_NATIVE) {
+        return m_x2apic_handler.timer_vector();
+    }
+
+    return m_timer_vec;
+}
 
 //------------------------------------------------------------------------------
 // Setup Functions

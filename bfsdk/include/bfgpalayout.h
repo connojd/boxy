@@ -129,6 +129,10 @@ setup_e820_map(void *vm, uint64_t size, uint32_t load_addr)
 {
     status_t ret = 0;
 
+    // Round up to the next 4K page
+    size &= ~0xFFFULL;
+    size += 0x1000ULL;
+
     if (size >= 0xFDC00000) {
         BFALERT("setup_e820_map: unsupported amount of RAM\n");
         return FAILURE;

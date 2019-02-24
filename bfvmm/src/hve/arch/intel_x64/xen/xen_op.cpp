@@ -118,14 +118,14 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 {
     using namespace vmcs_n;
 
-//    vcpu->add_run_delegate(
-//        bfvmm::vcpu::run_delegate_t::create<xen_op_handler, &xen_op_handler::run_delegate>(this)
-//    );
-//
-//    vcpu->add_exit_handler(
-//        handler_delegate_t::create<xen_op_handler, &xen_op_handler::exit_handler>(this)
-//    );
-//
+    vcpu->add_run_delegate(
+        bfvmm::vcpu::run_delegate_t::create<xen_op_handler, &xen_op_handler::run_delegate>(this)
+    );
+
+    vcpu->add_exit_handler(
+        handler_delegate_t::create<xen_op_handler, &xen_op_handler::exit_handler>(this)
+    );
+
     EMULATE_WRMSR(xen_msr_hypercall_page, xen_hypercall_page_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_ndec, xen_debug_ndec_wrmsr_handler);
 //    EMULATE_WRMSR(xen_msr_debug_nhex, xen_debug_nhex_wrmsr_handler);
@@ -137,20 +137,20 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 
     ADD_VMCALL_HANDLER(HYPERVISOR_memory_op);
     ADD_VMCALL_HANDLER(HYPERVISOR_xen_version);
-//    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
+    ADD_VMCALL_HANDLER(HYPERVISOR_grant_table_op);
     ADD_VMCALL_HANDLER(HYPERVISOR_hvm_op);
-//    ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
-//    ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
+    ADD_VMCALL_HANDLER(HYPERVISOR_event_channel_op);
+    ADD_VMCALL_HANDLER(HYPERVISOR_vcpu_op);
 
     m_vcpu->trap_on_all_io_instruction_accesses();
     m_vcpu->trap_on_all_rdmsr_accesses();
     m_vcpu->trap_on_all_wrmsr_accesses();
 
-//    this->isolate_msr(::x64::msrs::ia32_star::addr);
-//    this->isolate_msr(::x64::msrs::ia32_lstar::addr);
-//    this->isolate_msr(::x64::msrs::ia32_cstar::addr);
-//    this->isolate_msr(::x64::msrs::ia32_fmask::addr);
-//    this->isolate_msr(::x64::msrs::ia32_kernel_gs_base::addr);
+    this->isolate_msr(::x64::msrs::ia32_star::addr);
+    this->isolate_msr(::x64::msrs::ia32_lstar::addr);
+    this->isolate_msr(::x64::msrs::ia32_cstar::addr);
+    this->isolate_msr(::x64::msrs::ia32_fmask::addr);
+    this->isolate_msr(::x64::msrs::ia32_kernel_gs_base::addr);
 
 //    if (m_vcpu->is_dom0()) {
 //        ADD_WRMSR_HANDLER(::intel_x64::msrs::ia32_apic_base::addr, dom0_apic_base);
@@ -176,44 +176,71 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //
 //    EMULATE_RDMSR(0x140, rdmsr_zero_handler);
 //    EMULATE_WRMSR(0x140, wrmsr_ignore_handler);
-//
-//    EMULATE_RDMSR(::intel_x64::msrs::ia32_apic_base::addr,
-//                  ia32_apic_base_rdmsr_handler);
-//
-//    EMULATE_WRMSR(::intel_x64::msrs::ia32_apic_base::addr,
-//                  ia32_apic_base_wrmsr_handler);
+
+    EMULATE_RDMSR(0x0FE, rdmsr_mtrr_cap);
+    EMULATE_RDMSR(0x2FF, rdmsr_mtrr_def);
+    EMULATE_WRMSR(0x2FF, wrmsr_mtrr_def);
+
+    // TODO: the number of ranges == number of e820 entries
+    EMULATE_RDMSR(0x200, rdmsr_mtrr_physbase);
+    EMULATE_RDMSR(0x201, rdmsr_mtrr_physmask);
+
+    EMULATE_RDMSR(0x202, rdmsr_mtrr_physbase);
+    EMULATE_RDMSR(0x203, rdmsr_mtrr_physmask);
+
+    EMULATE_RDMSR(0x204, rdmsr_mtrr_physbase);
+    EMULATE_RDMSR(0x205, rdmsr_mtrr_physmask);
+
+    EMULATE_RDMSR(0x206, rdmsr_mtrr_physbase);
+    EMULATE_RDMSR(0x207, rdmsr_mtrr_physmask);
+
+    // MCG_CAP - MCE capability, status
+    //EMULATE_RDMSR(0x179, rdmsr_zero_handler);
+
+    EMULATE_RDMSR(::intel_x64::msrs::ia32_apic_base::addr,
+                  ia32_apic_base_rdmsr_handler);
+
+    EMULATE_WRMSR(::intel_x64::msrs::ia32_apic_base::addr,
+                  ia32_apic_base_wrmsr_handler);
 //
 //    ADD_RDMSR_HANDLER(0x1A0, ia32_misc_enable_rdmsr_handler);       // TODO: use namespace name
 //    EMULATE_WRMSR(0x1A0, ia32_misc_enable_wrmsr_handler);           // TODO: use namespace name
 //    EMULATE_WRMSR(0x6e0, handle_tsc_deadline);
 //
-//    ADD_CPUID_HANDLER(0x0, cpuid_pass_through_handler);
-//    ADD_CPUID_HANDLER(0x1, cpuid_leaf1_handler);
-//    ADD_CPUID_HANDLER(0x2, cpuid_pass_through_handler);             // Passthrough cache info
-//    ADD_CPUID_HANDLER(0x4, cpuid_leaf4_handler);
-//    ADD_CPUID_HANDLER(0x6, cpuid_leaf6_handler);
-//    ADD_CPUID_HANDLER(0x7, cpuid_leaf7_handler);
-//
-//    EMULATE_CPUID(0xA, cpuid_zero_handler);
-//    EMULATE_CPUID(0xB, cpuid_zero_handler);
-//    EMULATE_CPUID(0xD, cpuid_zero_handler);
-//    EMULATE_CPUID(0xF, cpuid_zero_handler);
-//    EMULATE_CPUID(0x10, cpuid_zero_handler);
-//
-//    ADD_CPUID_HANDLER(0x15, cpuid_leaf15_handler);            // TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x16, cpuid_pass_through_handler);            // TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x80000000, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x80000001, cpuid_leaf80000001_handler);      // TODO: 0 reserved bits
-//
-//    ADD_CPUID_HANDLER(0x80000002, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x80000003, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x80000004, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
-//
-//    ADD_CPUID_HANDLER(0x80000007, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-//    ADD_CPUID_HANDLER(0x80000008, cpuid_pass_through_handler);      // TODO: 0 reserved bits
-//
+    ADD_CPUID_HANDLER(0x0, cpuid_pass_through_handler);
+    ADD_CPUID_HANDLER(0x1, cpuid_leaf1_handler);
+    ADD_CPUID_HANDLER(0x2, cpuid_pass_through_handler);             // Passthrough cache info
+    ADD_CPUID_HANDLER(0x4, cpuid_leaf4_handler);
+    ADD_CPUID_HANDLER(0x6, cpuid_leaf6_handler);
+    ADD_CPUID_HANDLER(0x7, cpuid_leaf7_handler);
+
+    EMULATE_CPUID(0xA, cpuid_zero_handler);
+    EMULATE_CPUID(0xB, cpuid_zero_handler);
+    EMULATE_CPUID(0xD, cpuid_zero_handler);
+    EMULATE_CPUID(0xF, cpuid_zero_handler);
+    EMULATE_CPUID(0x10, cpuid_zero_handler);
+
+    ADD_CPUID_HANDLER(0x15, cpuid_leaf15_handler);            // TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x16, cpuid_pass_through_handler);            // TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x80000000, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x80000001, cpuid_leaf80000001_handler);      // TODO: 0 reserved bits
+
+    ADD_CPUID_HANDLER(0x80000002, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x80000003, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x80000004, cpuid_pass_through_handler);      // brand str cont. TODO: 0 reserved bits
+
+    ADD_CPUID_HANDLER(0x80000007, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+    ADD_CPUID_HANDLER(0x80000008, cpuid_pass_through_handler);      // TODO: 0 reserved bits
+
 //    EMULATE_IO_INSTRUCTION(0xCF8, io_cf8_in, io_cf8_out);
 //    //EMULATE_IO_INSTRUCTION(0xCFA, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCF8, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFA, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFB, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFC, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFD, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFE, io_ones_handler, io_ignore_handler);
+        EMULATE_IO_INSTRUCTION(0xCFF, io_ones_handler, io_ignore_handler);
 //    EMULATE_IO_INSTRUCTION(0xCFB, io_cfb_in, io_cfb_out);
 //    EMULATE_IO_INSTRUCTION(0xCFC, io_cfc_in, io_cfc_out);
 //    EMULATE_IO_INSTRUCTION(0xCFD, io_cfd_in, io_cfd_out);
@@ -236,18 +263,18 @@ xen_op_handler::xen_op_handler(vcpu_t *vcpu, domain *domain) :
 //    m_vcpu->pass_through_io_accesses(0x43);
 //    m_vcpu->pass_through_io_accesses(0x61);
 //
-//    this->register_unplug_quirk();
-//
-//    ADD_EPT_WRITE_HANDLER(xapic_handle_write);
-//
-//    m_pet_shift = ::intel_x64::msrs::ia32_vmx_misc::preemption_timer_decrement::get();
-//    m_tsc_freq_khz = tsc_frequency();
-//
-//    m_vcpu->add_handler(
-//        exit_reason::basic_exit_reason::hlt,
-//        ::handler_delegate_t::create<xen_op_handler, &xen_op_handler::handle_hlt>(this)
-//    );
-//
+    this->register_unplug_quirk();
+
+    ADD_EPT_WRITE_HANDLER(xapic_handle_write);
+
+    m_pet_shift = ::intel_x64::msrs::ia32_vmx_misc::preemption_timer_decrement::get();
+    m_tsc_freq_khz = tsc_frequency();
+
+    m_vcpu->add_handler(
+        exit_reason::basic_exit_reason::hlt,
+        ::handler_delegate_t::create<xen_op_handler, &xen_op_handler::handle_hlt>(this)
+    );
+
 //    this->pci_init_caps();
 //    this->pci_init_bars();
 //    this->pci_init_nic();
@@ -1398,6 +1425,72 @@ xen_op_handler::ia32_misc_enable_wrmsr_handler(
 }
 
 bool
+xen_op_handler::rdmsr_mtrr_cap(
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
+{
+    bfignored(vcpu);
+
+    ::x64::msrs::ia32_mtrrcap::vcnt::set(info.val, m_mtrr.size());
+    ::x64::msrs::ia32_mtrrcap::fixed_range_mtrr::disable(info.val);
+    ::x64::msrs::ia32_mtrrcap::wc::enable(info.val);
+    ::x64::msrs::ia32_mtrrcap::smrr::disable(info.val);
+
+    return true;
+}
+
+bool
+xen_op_handler::rdmsr_mtrr_def(
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
+{
+    bfignored(vcpu);
+
+    info.val = m_mtrr_def;
+    return true;
+}
+
+bool
+xen_op_handler::rdmsr_mtrr_physbase(
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
+{
+    bfignored(vcpu);
+
+    const auto msr_base = 0x200;
+    expects((info.msr - msr_base) <= 6);
+    expects(((info.msr - msr_base) & 1) == 0);
+
+    const auto i = (info.msr - msr_base) >> 1;
+    info.val = m_mtrr[i].base | m_mtrr[i].type;
+
+    return true;
+}
+
+bool
+xen_op_handler::rdmsr_mtrr_physmask(
+    vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
+{
+    bfignored(vcpu);
+
+    const auto msr_base = 0x200;
+    expects((info.msr - msr_base) <= 7);
+    expects(((info.msr - msr_base) & 1) == 1);
+
+    const auto i = (info.msr - msr_base) >> 1;
+    info.val = size_to_physmask(m_mtrr[i].size);
+
+    return true;
+}
+
+bool
+xen_op_handler::wrmsr_mtrr_def(
+    vcpu_t *vcpu, bfvmm::intel_x64::wrmsr_handler::info_t &info)
+{
+    bfignored(vcpu);
+
+    m_mtrr_def = info.val;
+    return true;
+}
+
+bool
 xen_op_handler::ia32_apic_base_rdmsr_handler(
     vcpu_t *vcpu, bfvmm::intel_x64::rdmsr_handler::info_t &info)
 {
@@ -1576,7 +1669,7 @@ xen_op_handler::cpuid_leaf1_handler(
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::vme::mask;
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::de::mask;
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::mce::mask;
-    info.rdx &= ~::intel_x64::cpuid::feature_information::edx::mtrr::mask;
+//    info.rdx &= ~::intel_x64::cpuid::feature_information::edx::mtrr::mask;
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::mca::mask;
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::ds::mask;
     info.rdx &= ~::intel_x64::cpuid::feature_information::edx::acpi::mask;
@@ -1810,10 +1903,10 @@ xen_op_handler::HYPERVISOR_memory_op(gsl::not_null<vcpu *> vcpu)
     }
 
     switch (vcpu->rdi()) {
-//        case XENMEM_decrease_reservation:
-//            this->XENMEM_decrease_reservation_handler(vcpu);
-//            return true;
-//
+        case XENMEM_decrease_reservation:
+            this->XENMEM_decrease_reservation_handler(vcpu);
+            return true;
+
         case XENMEM_add_to_physmap:
             this->XENMEM_add_to_physmap_handler(vcpu);
             return true;
@@ -1924,14 +2017,15 @@ xen_op_handler::XENMEM_memory_map_handler(vcpu *vcpu)
         //printf("E820: guest addr: 0x%lx\n", addr);
 
         map->nr_entries = 0;
+
         for (const auto &entry : vcpu->dom()->e820()) {
             e820_view[map->nr_entries].addr = entry.addr;
             e820_view[map->nr_entries].size = entry.size;
             e820_view[map->nr_entries].type = entry.type;
+
+            // Any holes in our E820 will use the default MTRR type UC
+            m_mtrr.emplace_back(mtrr_range(entry));
             map->nr_entries++;
-            //printf("    addr: 0x%lx\n", entry.addr);
-            //printf("    size: 0x%lx\n", entry.size);
-            //printf("    type: 0x%x\n", entry.type);
         }
 
         vcpu->set_rax(SUCCESS);
@@ -2061,17 +2155,17 @@ xen_op_handler::HYPERVISOR_vcpu_op(gsl::not_null<vcpu *> vcpu)
     }
 
     switch (vcpu->rdi()) {
-        case VCPUOP_stop_periodic_timer:
-            this->VCPUOP_stop_periodic_timer_handler(vcpu);
-            return true;
+//        case VCPUOP_stop_periodic_timer:
+//            this->VCPUOP_stop_periodic_timer_handler(vcpu);
+//            return true;
 
         case VCPUOP_register_vcpu_info:
             this->VCPUOP_register_vcpu_info_handler(vcpu);
             return true;
 
-        case VCPUOP_stop_singleshot_timer:
-            this->VCPUOP_stop_singleshot_timer_handler(vcpu);
-            return true;
+//        case VCPUOP_stop_singleshot_timer:
+//            this->VCPUOP_stop_singleshot_timer_handler(vcpu);
+//            return true;
 
         default:
             break;
@@ -2152,9 +2246,9 @@ xen_op_handler::HYPERVISOR_event_channel_op(gsl::not_null<vcpu *> vcpu)
             this->EVTCHNOP_bind_vcpu_handler(vcpu);
             return true;
 
-        case EVTCHNOP_send:
-            this->EVTCHNOP_send_handler(vcpu);
-            return true;
+//        case EVTCHNOP_send:
+//            this->EVTCHNOP_send_handler(vcpu);
+//            return true;
 
         default:
             break;
