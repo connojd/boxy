@@ -44,13 +44,7 @@ include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
 if(ENABLE_BUILD_VMM)
     vmm_extension(
         boxy_bfvmm
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src
-    )
-
-    vmm_extension(
-        boxy_bfvmm_main
-        DEPENDS boxy_bfvmm
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm/src/main
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm
     )
 endif()
 
@@ -60,8 +54,9 @@ endif()
 
 userspace_extension(
     bfexec
-    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec/src
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec
     DEPENDS bfintrinsics
+    DEPENDS bfsdk
     DEPENDS cxxopts
 )
 
