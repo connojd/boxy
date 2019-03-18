@@ -35,7 +35,9 @@ include(${BOXY_SOURCE_CMAKE_DIR}/targets.cmake)
 # General Dependencies
 # ------------------------------------------------------------------------------
 
-include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
+if(BOXY_BUILD_GUEST)
+    include_dependency(BOXY_SOURCE_DEPENDS_DIR linux)
+endif()
 
 # ------------------------------------------------------------------------------
 # VMM
