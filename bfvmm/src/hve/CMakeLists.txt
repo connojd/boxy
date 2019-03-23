@@ -43,6 +43,7 @@ target_sources(boxy_hve PRIVATE
     $<${X64}:arch/intel_x64/domain.cpp>
     $<${X64}:arch/intel_x64/uart.cpp>
     $<${X64}:arch/intel_x64/vcpu.cpp>
+    $<${X64}:arch/intel_x64/visr.cpp>
 )
 
 install(TARGETS boxy_hve DESTINATION lib EXPORT boxy_bfvmm-vmm-targets)
