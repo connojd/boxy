@@ -29,6 +29,7 @@ target_include_directories(boxy_hve PUBLIC
 target_sources(boxy_hve PRIVATE
     $<${X64}:arch/intel_x64/apic/x2apic.cpp>
     $<${X64}:arch/intel_x64/pci/pci_configuration_space.cpp>
+    $<${X64}:arch/intel_x64/pci/pci_dev.cpp>
     $<${X64}:arch/intel_x64/vmexit/cpuid.cpp>
     $<${X64}:arch/intel_x64/vmexit/external_interrupt.cpp>
     $<${X64}:arch/intel_x64/vmexit/io_instruction.cpp>
