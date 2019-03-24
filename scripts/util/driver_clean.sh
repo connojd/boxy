@@ -22,12 +22,12 @@
 
 case $(uname -s) in
 CYGWIN_NT*)
-    rm -Rf $1/bfbuilder/src/platform/windows/.vs/
-    rm -Rf $1/bfbuilder/src/platform/windows/builder.VC.db
-    rm -Rf $1/bfbuilder/src/platform/windows/x64/
+    rm -Rf $1/$2/src/platform/windows/.vs/
+    rm -Rf $1/$2/src/platform/windows/builder.VC.db
+    rm -Rf $1/$2/src/platform/windows/x64/
     ;;
 Linux)
-    cd $1/bfbuilder/src/platform/linux
+    cd $1/$2/src/platform/linux
     make clean
     ;;
 *)

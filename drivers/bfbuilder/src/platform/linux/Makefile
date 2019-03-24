@@ -34,7 +34,7 @@ ifneq ($(KERNELRELEASE),)
 	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfsdk/include/
 	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfelf_loader/include/
 	EXTRA_CFLAGS += -I$(src)/../../../include/
-	EXTRA_CFLAGS += -I$(src)/../../../../bfsdk/include/
+	EXTRA_CFLAGS += -I$(src)/../../../../../bfsdk/include/
 
 else
 	BUILDSYSTEM_DIR:=/lib/modules/$(shell uname -r)/build

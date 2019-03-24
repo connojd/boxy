@@ -22,6 +22,7 @@
 
 # $1 == BOXY_SOURCE_ROOT_DIR
 # $2 == SOURCE_ROOT_DIR
+# $3 == driver source relative to BOXY_SOURCE_ROOT_DIR
 
 msbuild_2015="/cygdrive/c/Program Files (x86)/MSBuild/14.0/Bin/MSBuild.exe"
 msbuild_2017="/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/bin/msbuild.exe"
@@ -45,24 +46,24 @@ find_msbuild() {
 case $(uname -s) in
 CYGWIN_NT-6.1*)
     find_msbuild
-    cd $1/bfbuilder/src/platform/windows/
+    cd $1/$3/src/platform/windows/
     SOURCE_ROOT_DIR=`cygpath -w -m $2`
     >&2 eval "'$msbuild' /p:SOURCE_ROOT_DIR=$SOURCE_ROOT_DIR /m:3 /p:Configuration=Release /p:Platform=x64 /p:TargetVersion=Windows7 bfbuilder.sln"
     ;;
 CYGWIN_NT-6.3*)
     find_msbuild
-    cd $1/bfbuilder/src/platform/windows/
+    cd $1/$3/src/platform/windows/
     SOURCE_ROOT_DIR=`cygpath -w -m $2`
     >&2 eval "'$msbuild' /p:SOURCE_ROOT_DIR=$SOURCE_ROOT_DIR /m:3 /p:Configuration=Release /p:Platform=x64 /p:TargetVersion=WindowsV6.3 bfbuilder.sln"
     ;;
 CYGWIN_NT-10.0*)
     find_msbuild
-    cd $1/bfbuilder/src/platform/windows/
+    cd $1/$3/src/platform/windows/
     SOURCE_ROOT_DIR=`cygpath -w -m $2`
     >&2 eval "'$msbuild' /p:SOURCE_ROOT_DIR=$SOURCE_ROOT_DIR /m:3 /p:Configuration=Release /p:Platform=x64 /p:TargetVersion=Windows10 bfbuilder.sln"
     ;;
 Linux)
-    cd $1/bfbuilder/src/platform/linux
+    cd $1/$3/src/platform/linux
     make SOURCE_ROOT_DIR=$2 -j3
     ;;
 *)

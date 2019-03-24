@@ -29,42 +29,42 @@ endif()
 
 file(TO_NATIVE_PATH "${SOURCE_ROOT_DIR}" SOURCE_ROOT_DIR_NATIVE)
 
-add_custom_target_category("Boxy Driver")
+add_custom_target_category("Boxy Builder")
 
 add_custom_target(builder_build
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_build.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_build.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE} drivers/bfbuilder
     USES_TERMINAL
 )
 add_custom_target_info(
     TARGET builder_build
-    COMMENT "Build the boxy driver"
+    COMMENT "Build the boxy builder"
 )
 
 add_custom_target(builder_clean
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_clean.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_clean.sh ${BOXY_SOURCE_ROOT_DIR} drivers/bfbuilder
     USES_TERMINAL
 )
 add_custom_target_info(
     TARGET builder_clean
-    COMMENT "Clean the boxy driver"
+    COMMENT "Clean the boxy builder"
 )
 
 add_custom_target(builder_load
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_load.sh ${BOXY_SOURCE_ROOT_DIR}  ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_load.sh ${BOXY_SOURCE_ROOT_DIR} drivers/bfbuilder
     USES_TERMINAL
 )
 add_custom_target_info(
     TARGET builder_load
-    COMMENT "Load the boxy driver"
+    COMMENT "Load the boxy builder"
 )
 
 add_custom_target(builder_unload
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_unload.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_unload.sh ${BOXY_SOURCE_ROOT_DIR} drivers/bfbuilder
     USES_TERMINAL
 )
 add_custom_target_info(
     TARGET builder_unload
-    COMMENT "Unload the boxy driver"
+    COMMENT "Unload the boxy builder"
 )
 
 add_custom_target(
