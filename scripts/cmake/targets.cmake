@@ -32,7 +32,7 @@ file(TO_NATIVE_PATH "${SOURCE_ROOT_DIR}" SOURCE_ROOT_DIR_NATIVE)
 add_custom_target_category("Boxy Driver")
 
 add_custom_target(builder_build
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_build.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_build.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE} bfbuilder/src/platform
     USES_TERMINAL
 )
 add_custom_target_info(
@@ -41,7 +41,7 @@ add_custom_target_info(
 )
 
 add_custom_target(builder_clean
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_clean.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_clean.sh ${BOXY_SOURCE_ROOT_DIR} bfbuilder/src/platform
     USES_TERMINAL
 )
 add_custom_target_info(
@@ -50,7 +50,7 @@ add_custom_target_info(
 )
 
 add_custom_target(builder_load
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_load.sh ${BOXY_SOURCE_ROOT_DIR}  ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_load.sh ${BOXY_SOURCE_ROOT_DIR} bfbuilder/src/platform
     USES_TERMINAL
 )
 add_custom_target_info(
@@ -59,7 +59,7 @@ add_custom_target_info(
 )
 
 add_custom_target(builder_unload
-    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_unload.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE}
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_unload.sh ${BOXY_SOURCE_ROOT_DIR} bfbuilder/src/platform
     USES_TERMINAL
 )
 add_custom_target_info(
@@ -77,7 +77,58 @@ add_custom_target(
 )
 add_custom_target_info(
     TARGET builder_quick
-    COMMENT "Unload, clean, build, and load the Bareflank driver"
+    COMMENT "Unload, clean, build, and load the boxy builder"
+)
+
+add_custom_target_category("Boxy VISR")
+
+add_custom_target(visr_build
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_build.sh ${BOXY_SOURCE_ROOT_DIR} ${SOURCE_ROOT_DIR_NATIVE} visr
+    USES_TERMINAL
+)
+add_custom_target_info(
+    TARGET visr_build
+    COMMENT "Build visr"
+)
+
+add_custom_target(visr_clean
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_clean.sh ${BOXY_SOURCE_ROOT_DIR} visr
+    USES_TERMINAL
+)
+add_custom_target_info(
+    TARGET visr_clean
+    COMMENT "Clean visr"
+)
+
+add_custom_target(visr_load
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_load.sh ${BOXY_SOURCE_ROOT_DIR} visr
+    USES_TERMINAL
+)
+add_custom_target_info(
+    TARGET visr_load
+    COMMENT "Load visr"
+)
+
+add_custom_target(visr_unload
+    COMMAND ${BOXY_SOURCE_UTIL_DIR}/driver_unload.sh ${BOXY_SOURCE_ROOT_DIR} visr
+    USES_TERMINAL
+)
+add_custom_target_info(
+    TARGET visr_unload
+    COMMENT "Unload visr"
+)
+
+add_custom_target(
+    visr_quick
+    COMMAND ${CMAKE_COMMAND} --build . --target visr_unload
+    COMMAND ${CMAKE_COMMAND} --build . --target visr_clean
+    COMMAND ${CMAKE_COMMAND} --build . --target visr_build
+    COMMAND ${CMAKE_COMMAND} --build . --target visr_load
+    USES_TERMINAL
+)
+add_custom_target_info(
+    TARGET visr_quick
+    COMMENT "Unload, clean, build, and load visr"
 )
 
 add_dependencies(driver_build builder_build)
@@ -85,3 +136,9 @@ add_dependencies(driver_clean builder_clean)
 add_dependencies(driver_load builder_load)
 add_dependencies(driver_unload builder_unload)
 add_dependencies(driver_quick builder_quick)
+
+add_dependencies(driver_build visr_build)
+add_dependencies(driver_clean visr_clean)
+add_dependencies(driver_load visr_load)
+add_dependencies(driver_unload visr_unload)
+add_dependencies(driver_quick visr_quick)

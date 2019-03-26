@@ -68,14 +68,14 @@ find_certmgr() {
 case $(uname -s) in
 CYGWIN_NT*)
     find_certmgr
-    cd $1/bfbuilder/src/platform/windows
+    cd $1/$2/windows
     >&2 eval "'$certmgr' /add x64/Release/bfbuilder.cer /s /r localMachine root"
     >&2 eval "'$certmgr' /add x64/Release/bfbuilder.cer /s /r localMachine trustedpublisher"
     >&2 /cygdrive/c/Program\ Files\ \(x86\)/Windows\ Kits/10/Tools/x64/devcon remove "ROOT\bfbuilder"
     >&2 /cygdrive/c/Program\ Files\ \(x86\)/Windows\ Kits/10/Tools/x64/devcon install x64/Release/bfbuilder/bfbuilder.inf "ROOT\bfbuilder"
     ;;
 Linux)
-    cd $1/bfbuilder/src/platform/linux
+    cd $1/$2/linux
     sudo make unload 1> /dev/null 2> /dev/null
     sudo make load 1> /dev/null 2> /dev/null
     ;;

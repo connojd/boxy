@@ -1,4 +1,3 @@
-#!/bin/bash -e
 #
 # Copyright (C) 2019 Assured Information Security, Inc.
 #
@@ -20,15 +19,39 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-case $(uname -s) in
-CYGWIN_NT*)
-    >&2 /cygdrive/c/Program\ Files\ \(x86\)/Windows\ Kits/10/Tools/x64/devcon remove "ROOT\bfbuilder"
-    ;;
-Linux)
-    cd $1/$2/linux
-    sudo make unload 1> /dev/null 2> /dev/null
-    ;;
-*)
-    >&2 echo "OS not supported"
-    exit 1
-esac
+TARGET_MODULE:=visr
+
+ifneq ($(KERNELRELEASE),)
+	obj-m := $(TARGET_MODULE).o
+
+#	$(TARGET_MODULE)-objs += entry.o
+#	$(TARGET_MODULE)-objs += platform.o
+#	$(TARGET_MODULE)-objs += intrinsics.o
+#	$(TARGET_MODULE)-objs += ../../common.o
+
+	EXTRA_CFLAGS += -DKERNEL
+	EXTRA_CFLAGS += -DLINUX_KERNEL
+	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfsdk/include/
+	EXTRA_CFLAGS += -I$(SOURCE_ROOT_DIR)/bfelf_loader/include/
+	EXTRA_CFLAGS += -I$(src)/../include/
+	EXTRA_CFLAGS += -I$(src)/../../bfsdk/include/
+
+else
+	BUILDSYSTEM_DIR:=/lib/modules/$(shell uname -r)/build
+	PWD:=$(shell pwd)
+
+all:
+	$(MAKE) -C $(BUILDSYSTEM_DIR) M=$(PWD) modules
+
+clean:
+	$(MAKE) -C $(BUILDSYSTEM_DIR) M=$(PWD) clean
+#	rm -f ../../common.o
+#	rm -f ../../.common.o.cmd
+
+load:
+	insmod ./$(TARGET_MODULE).ko
+
+unload:
+	-rmmod ./$(TARGET_MODULE).ko
+
+endif
