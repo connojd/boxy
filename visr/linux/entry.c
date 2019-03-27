@@ -27,6 +27,7 @@
 
 #include <bfdebug.h>
 #include <bfvisr.h>
+#include <bfhypercall.h>
 
 static const struct pci_device_id visr_table[] = {
     { PCI_DEVICE(VISR_VENDOR, VISR_DEVICE) },
@@ -60,15 +61,17 @@ static int visr_release(struct inode *inode, struct file *file)
 
 static long ioctl_map_mcfg(void)
 {
+    int ret;
     struct acpi_table_mcfg *mcfg = NULL;
 
     acpi_get_table(ACPI_SIG_MCFG, 0, (struct acpi_table_header **)&mcfg);
+    ret = __visr_op__map_mcfg((uintptr_t)mcfg);
 
-    //for (i = 0; i < sizeof(struct acpi_table_header); i++) {
-    //    printk("%02x", ((char *)(mcfg))[i]);
-    //}
+    if (ret == FAILURE) {
+        BFDEBUG("visr: map_mcfg failed");
+    }
 
-    return 0;
+    return ret;
 }
 
 static long

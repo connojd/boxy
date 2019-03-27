@@ -102,6 +102,15 @@ public:
     ///
     void call_ioctl_destroy(domainid_t domainid) noexcept;
 
+    /// Map MCFG
+    ///
+    /// Map the MCFG ACPI table into the VMM
+    ///
+    /// @expects none
+    /// @ensures none
+    ///
+    void call_ioctl_map_mcfg();
+
 private:
 
     std::unique_ptr<ioctl_private_base> m_d;

@@ -33,10 +33,12 @@ public:
 
     void call_ioctl_create_vm_from_bzimage(create_vm_from_bzimage_args &args);
     void call_ioctl_destroy(domainid_t domainid) noexcept;
+    void call_ioctl_map_mcfg() noexcept;
 
 private:
 
-    int fd;
+    int builder_fd;
+    int visr_fd;
 };
 
 #endif

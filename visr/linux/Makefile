@@ -24,9 +24,9 @@ TARGET_MODULE:=visr
 ifneq ($(KERNELRELEASE),)
 	obj-m := $(TARGET_MODULE).o
 
-#	$(TARGET_MODULE)-objs += entry.o
+	$(TARGET_MODULE)-objs += entry.o
 #	$(TARGET_MODULE)-objs += platform.o
-#	$(TARGET_MODULE)-objs += intrinsics.o
+	$(TARGET_MODULE)-objs += intrinsics.o
 #	$(TARGET_MODULE)-objs += ../../common.o
 
 	EXTRA_CFLAGS += -DKERNEL

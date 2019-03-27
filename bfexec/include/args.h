@@ -24,6 +24,7 @@
 using args_type = cxxopts::ParseResult;
 
 inline bool verbose = false;
+inline bool mapmcfg = true;
 inline cxxopts::Options options("bfexec", "execute's a virtual machine");
 
 inline args_type
@@ -37,6 +38,7 @@ parse_args(int argc, char *argv[])
     ("version", "Print the version")
     ("affinity", "The host CPU to execute the VM on", value<uint64_t>(), "[core #]")
     ("bzimage", "Create a VM from a bzImage file")
+    ("mcfg", "Map in the MCFG ACPI table")
     ("path", "The VM's path", value<std::string>(), "[path]")
     ("size", "The VM's total RAM", value<uint64_t>(), "[bytes]")
     ("initrd", "The VM's initrd path", value<std::string>(), "[path]")
@@ -60,8 +62,12 @@ parse_args(int argc, char *argv[])
         verbose = true;
     }
 
-    if (!args.count("bzimage")) {
+    if (!args.count("bzimage") && !args.count("mcfg")) {
         throw std::runtime_error("must specify 'bzimage'");
+    }
+
+    if (args.count("mcfg")) {
+        mapmcfg = true;
     }
 
     if (args.count("uart") && args.count("pt_uart")) {

@@ -25,6 +25,7 @@ target_link_libraries(boxy_hve PUBLIC vmm::bfvmm boxy_domain)
 target_include_directories(boxy_hve PUBLIC
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/include>
     $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../bfsdk/include>
+    $<${BUILD_INCLUDE}:${PROJECT_SOURCE_DIR}/../bfbuilder/include>
 )
 target_sources(boxy_hve PRIVATE
     $<${X64}:arch/intel_x64/apic/x2apic.cpp>
@@ -40,6 +41,7 @@ target_sources(boxy_hve PRIVATE
     $<${X64}:arch/intel_x64/vmcall/domain_op.cpp>
     $<${X64}:arch/intel_x64/vmcall/run_op.cpp>
     $<${X64}:arch/intel_x64/vmcall/vcpu_op.cpp>
+    $<${X64}:arch/intel_x64/vmcall/visr_op.cpp>
     $<${X64}:arch/intel_x64/domain.cpp>
     $<${X64}:arch/intel_x64/uart.cpp>
     $<${X64}:arch/intel_x64/vcpu.cpp>

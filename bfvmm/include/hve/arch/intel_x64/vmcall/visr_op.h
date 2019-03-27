@@ -19,34 +19,63 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <ioctl.h>
-#include <ioctl_private.h>
+#ifndef VMCALL_VISR_INTEL_X64_BOXY_H
+#define VMCALL_VISR_INTEL_X64_BOXY_H
 
-ioctl::ioctl() :
-    m_d {std::make_unique<ioctl_private>()}
-{ }
+#include <bfvmm/hve/arch/intel_x64/vcpu.h>
 
-void
-ioctl::call_ioctl_create_vm_from_bzimage(
-    create_vm_from_bzimage_args &args)
+// -----------------------------------------------------------------------------
+// Definitions
+// -----------------------------------------------------------------------------
+
+namespace boxy::intel_x64
 {
-    if (auto d = dynamic_cast<ioctl_private *>(m_d.get())) {
-        d->call_ioctl_create_vm_from_bzimage(args);
-    }
+
+class vcpu;
+
+class vmcall_visr_op_handler
+{
+public:
+
+    /// Constructor
+    ///
+    /// @expects
+    /// @ensures
+    ///
+    vmcall_visr_op_handler(gsl::not_null<vcpu *> vcpu);
+
+    /// Destructor
+    ///
+    /// @expects
+    /// @ensures
+    ///
+    ~vmcall_visr_op_handler() = default;
+
+private:
+
+    void map_mcfg(vcpu *vcpu);
+    void emulate(vcpu *vcpu);
+    void enable(vcpu *vcpu);
+
+    bool dispatch(vcpu *vcpu);
+
+private:
+
+    vcpu *m_vcpu;
+
+public:
+
+    /// @cond
+
+    vmcall_visr_op_handler(vmcall_visr_op_handler &&) = default;
+    vmcall_visr_op_handler &operator=(vmcall_visr_op_handler &&) = default;
+
+    vmcall_visr_op_handler(const vmcall_visr_op_handler &) = delete;
+    vmcall_visr_op_handler &operator=(const vmcall_visr_op_handler &) = delete;
+
+    /// @endcond
+};
+
 }
 
-void
-ioctl::call_ioctl_destroy(domainid_t domainid) noexcept
-{
-    if (auto d = dynamic_cast<ioctl_private *>(m_d.get())) {
-        d->call_ioctl_destroy(domainid);
-    }
-}
-
-void
-ioctl::call_ioctl_map_mcfg()
-{
-    if (auto d = dynamic_cast<ioctl_private *>(m_d.get())) {
-        d->call_ioctl_map_mcfg();
-    }
-}
+#endif

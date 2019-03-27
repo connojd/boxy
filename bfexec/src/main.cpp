@@ -253,6 +253,13 @@ create_vm_from_bzimage(const args_type &args)
 static int
 protected_main(const args_type &args)
 {
+    if (args.count("mcfg")) {
+        ctl->call_ioctl_map_mcfg();
+        if (!args.count("bzimage")) {
+            exit(EXIT_SUCCESS);
+        }
+    }
+
     if (args.count("affinity")) {
         set_affinity(args["affinity"].as<uint64_t>());
     }

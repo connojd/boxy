@@ -66,6 +66,7 @@ uint64_t _vmcall(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4) NOEXCEPT;
 #define __enum_domain_op 2
 #define __enum_vcpu_op 3
 #define __enum_uart_op 4
+#define __enum_visr_op 5
 
 #define bfopcode(a) ((a & 0x00FF000000000000) >> 48)
 
@@ -87,6 +88,27 @@ __run_op(vcpuid_t vcpuid, uint64_t arg1, uint64_t arg2)
     return _vmcall(
         0xBF01000000000000, vcpuid, arg1, arg2
     );
+}
+
+// -----------------------------------------------------------------------------
+// VISR Operations
+// -----------------------------------------------------------------------------
+
+#define __enum_visr_op__map_mcfg (((0xBF00ULL | __enum_visr_op) << 48) | 1)
+#define __enum_visr_op__emulate  (((0xBF00ULL | __enum_visr_op) << 48) | 2)
+#define __enum_visr_op__enable   (((0xBF00ULL | __enum_visr_op) << 48) | 3)
+
+static inline status_t
+__visr_op__map_mcfg(uintptr_t mcfg_gpa)
+{
+    status_t ret = _vmcall(
+        __enum_visr_op__map_mcfg,
+        (uint64_t)mcfg_gpa,
+        0,
+        0
+    );
+
+    return ret == 0 ? SUCCESS : FAILURE;
 }
 
 // -----------------------------------------------------------------------------
@@ -269,6 +291,7 @@ __domain_op__create_domain(void)
         0
     );
 }
+
 
 static inline status_t
 __domain_op__destroy_domain(domainid_t foreign_domainid)

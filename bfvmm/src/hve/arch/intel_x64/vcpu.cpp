@@ -89,6 +89,7 @@ vcpu::vcpu(
     m_vmcall_run_op_handler{this},
     m_vmcall_domain_op_handler{this},
     m_vmcall_vcpu_op_handler{this},
+    m_vmcall_visr_op_handler{this},
 
     m_x2apic_handler{this},
     m_pci_configuration_space_handler{this}

@@ -27,6 +27,7 @@ init_project(
     INCLUDES ${PROJECT_SOURCE_DIR}/../include
     INCLUDES ${PROJECT_SOURCE_DIR}/../../include
     INCLUDES ${PROJECT_SOURCE_DIR}/../../bfsdk/include
+    INCLUDES ${PROJECT_SOURCE_DIR}/../../bfbuilder/include
 )
 
 add_subdirectory(domain)

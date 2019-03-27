@@ -52,6 +52,8 @@ private:
     void domain_op__create_domain(vcpu *vcpu);
     void domain_op__destroy_domain(vcpu *vcpu);
 
+    void domain_op__map_mcfg(vcpu *vcpu);
+
     void domain_op__set_uart(vcpu *vcpu);
     void domain_op__set_pt_uart(vcpu *vcpu);
     void domain_op__dump_uart(vcpu *vcpu);

@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <acpi.h>
 #include <hve/arch/intel_x64/vcpu.h>
 #include <hve/arch/intel_x64/domain.h>
 #include <hve/arch/intel_x64/vmcall/domain_op.h>

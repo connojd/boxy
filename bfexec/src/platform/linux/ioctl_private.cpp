@@ -31,6 +31,7 @@
 
 #include <bfgsl.h>
 #include <bfdriverinterface.h>
+#include <bfvisr.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -58,19 +59,26 @@ bfm_write_ioctl(int fd, unsigned long request, const void *data)
 
 ioctl_private::ioctl_private()
 {
-    if ((fd = bfm_ioctl_open()) < 0) {
+    if ((builder_fd = bfm_ioctl_open()) < 0) {
         throw std::runtime_error("failed to open to the builder driver");
+    }
+
+    if ((visr_fd = open("/dev/visr", O_RDWR)) < 0) {
+        throw std::runtime_error("failed to open to the visr driver");
     }
 }
 
 ioctl_private::~ioctl_private()
-{ close(fd); }
+{
+    close(builder_fd);
+    close(visr_fd);
+}
 
 void
 ioctl_private::call_ioctl_create_vm_from_bzimage(
     create_vm_from_bzimage_args &args)
 {
-    if (bfm_write_ioctl(fd, IOCTL_CREATE_VM_FROM_BZIMAGE, &args) < 0) {
+    if (bfm_write_ioctl(builder_fd, IOCTL_CREATE_VM_FROM_BZIMAGE, &args) < 0) {
         throw std::runtime_error("ioctl failed: IOCTL_CREATE_VM_FROM_BZIMAGE");
     }
 }
@@ -78,7 +86,15 @@ ioctl_private::call_ioctl_create_vm_from_bzimage(
 void
 ioctl_private::call_ioctl_destroy(domainid_t domainid) noexcept
 {
-    if (bfm_write_ioctl(fd, IOCTL_DESTROY, &domainid) < 0) {
+    if (bfm_write_ioctl(builder_fd, IOCTL_DESTROY, &domainid) < 0) {
         std::cerr << "[ERROR] ioctl failed: IOCTL_DESTROY\n";
+    }
+}
+
+void
+ioctl_private::call_ioctl_map_mcfg() noexcept
+{
+    if (ioctl(visr_fd, IOCTL_MAP_MCFG) < 0) {
+        std::cerr << "[ERROR] ioctl failed: IOCTL_MAP_MCFG\n";
     }
 }

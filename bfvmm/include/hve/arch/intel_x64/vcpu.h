@@ -36,6 +36,7 @@
 #include "vmcall/domain_op.h"
 #include "vmcall/run_op.h"
 #include "vmcall/vcpu_op.h"
+#include "vmcall/visr_op.h"
 
 #include "domain.h"
 
@@ -45,6 +46,8 @@
 //------------------------------------------------------------------------------
 // Definition
 //------------------------------------------------------------------------------
+
+extern gsl::span<uint8_t> g_mcfg;
 
 namespace boxy::intel_x64
 {
@@ -293,6 +296,7 @@ private:
     vmcall_run_op_handler m_vmcall_run_op_handler;
     vmcall_domain_op_handler m_vmcall_domain_op_handler;
     vmcall_vcpu_op_handler m_vmcall_vcpu_op_handler;
+    vmcall_visr_op_handler m_vmcall_visr_op_handler;
 
     x2apic_handler m_x2apic_handler;
     pci_configuration_space_handler m_pci_configuration_space_handler;
