@@ -50,7 +50,7 @@ msr_handler::msr_handler(
     using namespace vmcs_n;
 
     vcpu->add_run_delegate(
-        run_delegate_t::create<msr_handler, &msr_handler::isolate_msr__on_run>(this)
+        vcpu_delegate_t::create<msr_handler, &msr_handler::isolate_msr__on_run>(this)
     );
 
     vcpu->add_exit_handler(

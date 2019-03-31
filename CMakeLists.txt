@@ -44,8 +44,8 @@ endif()
 # ------------------------------------------------------------------------------
 
 if(ENABLE_BUILD_VMM)
-    vmm_extension(
-        boxy_bfvmm
+    add_subproject(boxy_bfvmm vmm
+        DEPENDS bfvmm
         SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfvmm
     )
 endif()
@@ -54,22 +54,20 @@ endif()
 # bfexec
 # ------------------------------------------------------------------------------
 
-userspace_extension(
-    bfexec
-    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec
-    DEPENDS bfintrinsics
-    DEPENDS bfsdk
-    DEPENDS cxxopts
-)
+if(ENABLE_BUILD_USERSPACE)
+    add_subproject(bfexec userspace
+        DEPENDS bfintrinsics bfsdk cxxopts
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bfexec
+    )
+endif()
 
 # ------------------------------------------------------------------------------
 # bflinux
 # ------------------------------------------------------------------------------
 
 if(NOT WIN32 AND NOT CYGWIN)
-    userspace_extension(
-        bflinux
-        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
+    add_subproject(bflinux userspace
         DEPENDS bfintrinsics
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/bflinux
     )
 endif()
