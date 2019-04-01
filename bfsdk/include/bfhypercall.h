@@ -99,17 +99,19 @@ __run_op(vcpuid_t vcpuid, uint64_t arg1, uint64_t arg2)
 #define __enum_visr_op__enable   (((0xBF00ULL | __enum_visr_op) << 48) | 3)
 
 static inline status_t
-__visr_op__map_mcfg(uintptr_t mcfg_gpa)
+__visr_op__map_mcfg(uintptr_t mcfg_gva)
 {
-    status_t ret = _vmcall(
-        __enum_visr_op__map_mcfg,
-        (uint64_t)mcfg_gpa,
-        0,
-        0
-    );
-
+    status_t ret = _vmcall(__enum_visr_op__map_mcfg, (uint64_t)mcfg_gva, 0, 0);
     return ret == 0 ? SUCCESS : FAILURE;
 }
+
+static inline status_t
+__visr_op__emulate(uint64_t bdf)
+{
+    status_t ret = _vmcall(__enum_visr_op__emulate, bdf, 0, 0);
+    return ret == 0 ? SUCCESS : FAILURE;
+}
+
 
 // -----------------------------------------------------------------------------
 // Uart Operations

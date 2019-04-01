@@ -47,7 +47,9 @@
 // Definition
 //------------------------------------------------------------------------------
 
-extern gsl::span<uint8_t> g_mcfg;
+struct mcfg_alloc_t;
+extern bfvmm::x64::unique_map<uint8_t> g_mcfg_map;
+extern gsl::span<struct mcfg_alloc_t> g_mcfg_allocs;
 
 namespace boxy::intel_x64
 {

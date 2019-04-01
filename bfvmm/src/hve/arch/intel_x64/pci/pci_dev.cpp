@@ -42,11 +42,32 @@ uint32_t pci_dev::dev() const { return m_dev; }
 uint32_t pci_dev::fun() const { return m_fun; }
 uint32_t pci_dev::reg(uint32_t off) const { return m_cfg.at(off); }
 vcpuid_t pci_dev::vcpuid() const { return m_vcpuid; }
+vcpuid_t pci_dev::domid() const { return m_domid; }
+
+void pci_dev::dump_mmcfg() const
+{
+    expects(m_mmcfg_map);
+
+    const auto cfg = reinterpret_cast<uint8_t *>(m_mmcfg_map.get());
+    for (auto i = 0; i < 64; i++) {
+        if (i % 16 == 0) {
+            printf("\n%02x:", i);
+        }
+        printf(" %02x", cfg[i]);
+    }
+    printf("\n");
+}
 
 // Assume normal (non-bridge) devices for now
 bool pci_dev::is_bar(uint32_t offset) const
 {
     return offset >= 4 && offset <= 9;
+}
+
+void pci_dev::set_mmcfg(uintptr_t gpa, bfvmm::x64::unique_map<uint32_t> &&map)
+{
+    m_mmcfg_gpa = gpa;
+    m_mmcfg_map = std::move(map);
 }
 
 void pci_dev::set_reg(uint32_t off, uint32_t val)

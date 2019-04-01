@@ -74,13 +74,23 @@ visr *visr::instance() noexcept
     return &self;
 }
 
-void visr::init_config_space(struct pci_dev *dev)
+void visr::init_cfg_space(vcpu *v, struct pci_dev *dev)
 {
-    auto cf8 = bdf_to_cf8(dev->bus(), dev->dev(), dev->fun());
+    expects(v->is_dom0());
+
+    const auto cf8 = bdf_to_cf8(dev->bus(), dev->dev(), dev->fun());
 
     // Only normal (non-bridge) devices with capability lists are supported
     expects(is_normal(cf8));
     expects((cf8_read_reg(cf8, 0x1) & 0x100000) != 0);
+
+    // Only PCIe devices supported
+    const auto [pcie_reg, pcie_val] = find_cap(cf8, capid_pcie);
+    expects(pcie_reg != 0);
+
+    // PCIe implies MSI but check anyway for sanity
+    const auto [msi_reg, msi_val] = find_cap(cf8, capid_msi);
+    expects(msi_reg != 0);
 
     dev->set_reg(0x0, 0xBEEF'F00D);
     dev->set_reg(0x1, cf8_read_reg(cf8, 0x1) | 0x400);
@@ -88,34 +98,55 @@ void visr::init_config_space(struct pci_dev *dev)
     dev->set_reg(0x3, cf8_read_reg(cf8, 0x3));
     dev->set_reg(0xF, (cf8_read_reg(cf8, 0xF) | 0xFF) & 0xFFFF00FF);
 
-    // Advertise only the MSI capability
-    auto reg = (cf8_read_reg(cf8, 0xD) & 0xFF) >> 2;
-    while (reg != 0) {
-        const auto cap = cf8_read_reg(cf8, reg);
-        if ((cap & 0xFF) == 5) {
-            dev->set_reg(0xD, reg << 2);
+    // Advertise the MSI capability only
+    dev->set_reg(0xD, msi_reg << 2);
 
-            // Here we terminate the capability list,
-            // clear MSI enable, clear multi-message capable/enable,
-            // passthrough 64-bit address capable, and clear rsvd bits
-            dev->set_reg(reg, cap & 0x0080'00'05);
+    // Here we terminate the capability list,
+    // clear MSI enable, clear multi-message capable/enable,
+    // passthrough 64-bit address capable, and clear rsvd bits
+    dev->set_reg(msi_reg, msi_val & 0x0080'00'05);
+
+    // Now we store the gpa of the device's extended config space
+    expects(g_mcfg_allocs.size() >= 1);
+
+    const auto b = dev->bus();
+    const auto d = dev->dev();
+    const auto f = dev->fun();
+
+    for (const auto &mca : g_mcfg_allocs) {
+        if (b < mca.startbus || b > mca.endbus) {
+            continue;
         }
-        reg = (cap & 0xFF00) >> (8 + 2);
+
+        auto off = ((b - mca.startbus) << 20) | (d << 15) | (f << 12);
+        auto map = v->map_gpa_4k<uint32_t>(mca.base + off);
+        dev->set_mmcfg(mca.base + off, std::move(map));
+        dev->dump_mmcfg();
+
+        return;
     }
+
+    throw std::runtime_error("PCI dev not in any MCFG alloc entry");
 }
 
-void visr::emulate(uint32_t bus, uint32_t dev, uint32_t fun)
+void visr::emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f)
 {
+    auto cf8 = bdf_to_cf8(b, d, f);
+    if (this->is_emulating(cf8)) {
+        v->set_rax(SUCCESS);
+        return;
+    }
+
+    auto dev = std::make_unique<struct pci_dev>(b, d, f);
+    this->init_cfg_space(v, dev.get());
+
     std::lock_guard<std::mutex> lock(m_mutex);
+    m_devs.emplace(std::make_pair(cf8, std::move(dev)));
 
-    auto cf8 = bdf_to_cf8(bus, dev, fun);
-    auto ptr = std::make_unique<struct pci_dev>(bus, dev, fun);
-
-    this->init_config_space(ptr.get());
-    m_devs.emplace(std::make_pair(cf8, std::move(ptr)));
+    v->set_rax(SUCCESS);
 }
 
-void visr::enable(gsl::not_null<vcpu *> vcpu)
+void visr::enable(vcpu *vcpu)
 {
     expects(vcpu->is_dom0());
 

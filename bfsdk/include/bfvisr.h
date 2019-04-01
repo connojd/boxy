@@ -50,6 +50,7 @@ extern "C" {
 #endif
 
 #define IOCTL_MAP_MCFG_CMD 0x01
+#define IOCTL_EMULATE_CMD 0x02
 
 /* -------------------------------------------------------------------------- */
 /* Linux Interfaces                                                           */
@@ -58,6 +59,7 @@ extern "C" {
 #ifdef __linux__
 
 #define IOCTL_MAP_MCFG _IO(VISR_MAGIC, IOCTL_MAP_MCFG_CMD)
+#define IOCTL_EMULATE _IOW(VISR_MAGIC, IOCTL_EMULATE_CMD, uint64_t)
 
 #endif
 

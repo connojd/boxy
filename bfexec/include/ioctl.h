@@ -111,6 +111,18 @@ public:
     ///
     void call_ioctl_map_mcfg();
 
+    /// Emulate
+    ///
+    /// Emulate PCI device at bus/device/function
+    ///
+    /// @expects none
+    /// @ensures none
+    ///
+    /// @param bdf the bus/device/function of PCI device encoded as a config
+    /// address
+    ///
+    void call_ioctl_emulate(uint64_t bdf);
+
 private:
 
     std::unique_ptr<ioctl_private_base> m_d;

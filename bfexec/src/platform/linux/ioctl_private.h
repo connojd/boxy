@@ -34,6 +34,7 @@ public:
     void call_ioctl_create_vm_from_bzimage(create_vm_from_bzimage_args &args);
     void call_ioctl_destroy(domainid_t domainid) noexcept;
     void call_ioctl_map_mcfg() noexcept;
+    void call_ioctl_emulate(uint64_t bdf) noexcept;
 
 private:
 

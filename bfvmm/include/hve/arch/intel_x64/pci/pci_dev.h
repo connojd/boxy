@@ -53,6 +53,13 @@ public:
     ///
     ~pci_dev() = default;
 
+    /// Dump the MMCFG of this device
+    ///
+    /// This prints the first 256 bytes of the device's MMCFG space.
+    /// The output is in the same form as lspci -x
+    ///
+    void dump_mmcfg() const;
+
     /// Bind vcpu
     ///
     /// Associate the vcpu referenced by the given id with this PCI dev.
@@ -72,6 +79,17 @@ public:
     /// @param virt the vector received from the guest VM
     ///
     void set_virt_vector(uint64_t virt);
+
+    /// Set MMCFG
+    ///
+    /// Set this device's memory-mapped config space gpa and unique_map
+    /// The gpa is used to emulate with EPT and the map is used to talk to
+    /// the actual config space
+    ///
+    /// @param gpa the guest-physical address of the MMCFG page
+    /// @param map the map containing the hva of the MMCFG page
+    ///
+    void set_mmcfg(uintptr_t gpa, bfvmm::x64::unique_map<uint32_t> &&map);
 
     /// Set bus/device/function
     ///
@@ -127,9 +145,15 @@ public:
 
     /// vcpuid
     ///
-    /// @return the vcpuid bound to this device
+    /// @return the id of the vcpu bound to this device
     ///
     uint64_t vcpuid() const;
+
+    /// domid
+    ///
+    /// @return the id of the domain bound to this device
+    ///
+    uint64_t domid() const;
 
     /// Is bar
     ///
@@ -160,6 +184,8 @@ private:
     domainid_t m_domid{INVALID_DOMAINID};
     page_ptr<uint32_t> m_cfg_page;
     gsl::span<uint32_t> m_cfg;
+    bfvmm::x64::unique_map<uint32_t> m_mmcfg_map{};
+    uintptr_t m_mmcfg_gpa{};
 
 public:
 

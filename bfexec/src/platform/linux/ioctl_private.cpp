@@ -98,3 +98,11 @@ ioctl_private::call_ioctl_map_mcfg() noexcept
         std::cerr << "[ERROR] ioctl failed: IOCTL_MAP_MCFG\n";
     }
 }
+
+void
+ioctl_private::call_ioctl_emulate(uint64_t bdf) noexcept
+{
+    if (ioctl(visr_fd, IOCTL_EMULATE, &bdf) < 0) {
+        std::cerr << "[ERROR] ioctl failed: IOCTL_EMULATE\n";
+    }
+}

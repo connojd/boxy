@@ -50,3 +50,11 @@ ioctl::call_ioctl_map_mcfg()
         d->call_ioctl_map_mcfg();
     }
 }
+
+void
+ioctl::call_ioctl_emulate(uint64_t bdf)
+{
+    if (auto d = dynamic_cast<ioctl_private *>(m_d.get())) {
+        d->call_ioctl_emulate(bdf);
+    }
+}

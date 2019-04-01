@@ -253,11 +253,49 @@ create_vm_from_bzimage(const args_type &args)
 static int
 protected_main(const args_type &args)
 {
-    if (args.count("mcfg")) {
-        ctl->call_ioctl_map_mcfg();
-        if (!args.count("bzimage")) {
+    if (!args.count("bzimage")) {
+        if (args.count("mcfg")) {
+            ctl->call_ioctl_map_mcfg();
             exit(EXIT_SUCCESS);
         }
+
+        if (args.count("emu")) {
+            const auto bdf = args["emu"].as<std::string>();
+            if (bdf.size() != 7) {
+                throw std::invalid_argument("invalid emu string: " + bdf);
+            }
+
+            const auto bus_end = bdf.find_first_of(':');
+            if (bus_end != 2) {
+                throw std::invalid_argument("invalid bus end: " + bdf);
+            }
+
+            const auto dev_end = bdf.find_first_of('.');
+            if (dev_end != 5) {
+                throw std::invalid_argument("invalid dev end: " + bdf);
+            }
+
+            const auto bus_str = std::string("0x") + bdf.substr(0, bus_end);
+            const auto dev_str = std::string("0x") + bdf.substr(bus_end + 1, 2);
+            const auto fun_str = std::string("0x") + bdf.substr(dev_end + 1, 1);
+
+            const auto bus = stoull(bus_str, nullptr, 16);
+            const auto dev = stoull(dev_str, nullptr, 16);
+            const auto fun = stoull(fun_str, nullptr, 16);
+
+            printf("bus str: %s\n", bus_str.c_str());
+            printf("dev str: %s\n", dev_str.c_str());
+            printf("fun str: %s\n", fun_str.c_str());
+
+            printf("bus: %llx\n", bus);
+            printf("dev: %llx\n", dev);
+            printf("fun: %llx\n", fun);
+
+            ctl->call_ioctl_emulate((bus << 16) | (dev << 11) | (fun << 8));
+            exit(EXIT_SUCCESS);
+        }
+
+        exit(EXIT_FAILURE);
     }
 
     if (args.count("affinity")) {

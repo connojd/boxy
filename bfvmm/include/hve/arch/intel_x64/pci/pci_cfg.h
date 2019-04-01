@@ -76,6 +76,12 @@ enum subclass_bridge_t {
     sc_bridge_other = 0x80
 };
 
+enum capid_t {
+    capid_pcie = 0x01,
+    capid_msi = 0x05,
+    capid_msix = 0x11
+};
+
 uint32_t cf8_read_reg(uint32_t cf8, uint32_t reg);
 void cf8_write_reg(uint32_t cf8, uint32_t reg, uint32_t val);
 
@@ -213,6 +219,21 @@ inline uint32_t secondary_bus(uint32_t bus, uint32_t dev, uint32_t fun)
 
     const auto reg = cf8_read_reg(cf8, 6);
     return (reg & 0xFF00UL) >> 8;
+}
+
+inline std::pair<uint32_t, uint32_t> find_cap(uint32_t cf8, uint32_t capid)
+{
+    auto reg = (cf8_read_reg(cf8, 0xD) & 0xFF) >> 2;
+
+    while (reg != 0) {
+        const auto val = cf8_read_reg(cf8, reg);
+        if ((val & 0xFF) == capid) {
+            return {reg, val};
+        }
+        reg = (val & 0xFF00) >> (8 + 2);
+    }
+
+    return {0, 0};
 }
 
 ///----------------------------------------------------------------------------

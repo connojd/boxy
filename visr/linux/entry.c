@@ -24,6 +24,7 @@
 #include <linux/pci.h>
 #include <linux/module.h>
 #include <linux/miscdevice.h>
+#include <linux/uaccess.h>
 
 #include <bfdebug.h>
 #include <bfvisr.h>
@@ -59,6 +60,22 @@ static int visr_release(struct inode *inode, struct file *file)
     return 0;
 }
 
+static long ioctl_emulate(unsigned long arg)
+{
+    int ret;
+    uint64_t bdf = 0;
+    uint64_t __user *ptr = (uint64_t __user *)arg;
+
+    get_user(bdf, ptr);
+
+    ret = __visr_op__emulate(bdf);
+    if (ret == FAILURE) {
+        BFDEBUG("visr: emulate failed");
+    }
+
+    return ret;
+}
+
 static long ioctl_map_mcfg(void)
 {
     int ret;
@@ -80,7 +97,8 @@ visr_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     switch (cmd) {
         case IOCTL_MAP_MCFG:
             return ioctl_map_mcfg();
-
+        case IOCTL_EMULATE:
+            return ioctl_emulate(arg);
         default:
             return -EINVAL;
     }

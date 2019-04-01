@@ -25,6 +25,7 @@
 #include <bfvmm/hve/arch/intel_x64/vmexit/cpuid.h>
 #include <bfvmm/hve/arch/intel_x64/vmexit/io_instruction.h>
 
+#include <acpi.h>
 #include <hve/arch/intel_x64/vcpu.h>
 #include <hve/arch/intel_x64/pci/pci_dev.h>
 
@@ -57,11 +58,12 @@ public:
 
     /// Add a device to emulate
     ///
-    /// @param bus the bus of the emulated device
-    /// @param dev the device of the emulated device
-    /// @param fun the function of the emulated device
+    /// @param v the vcpu the device is bound to
+    /// @param b the bus of the emulated device
+    /// @param d the device of the emulated device
+    /// @param f the function of the emulated device
     ///
-    void emulate(uint32_t bus, uint32_t dev, uint32_t fun);
+    void emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f);
 
     /// Enable
     ///
@@ -74,7 +76,7 @@ public:
     ///
     /// @param vcpu the vcpu to enable this on
     ///
-    void enable(gsl::not_null<vcpu *> vcpu);
+    void enable(vcpu *vcpu);
 
     /// Save physical vector
     ///
@@ -139,23 +141,10 @@ public:
 
 private:
 
-    /// Is emulating
-    ///
-    /// @param cf8 the address to check
-    /// @return true iff visr is emulating the device at the given address
-    ///
-    bool is_emulating(uint32_t cf8) const;
-
-    /// Init config space
-    ///
-    /// Initialize configuration registers of the provided PCI device
-    /// to reflect that of a standard visr device
-    ///
-    /// @param dev the pci device to configure
-    ///
-    void init_config_space(struct pci_dev *dev);
-
     /// @cond
+
+    bool is_emulating(uint32_t cf8) const;
+    void init_cfg_space(vcpu *vcpu, struct pci_dev *dev);
 
     static constexpr auto vector_min = 32;
     static constexpr auto vector_max = 255;
