@@ -63,7 +63,9 @@ public:
     /// @param d the device of the emulated device
     /// @param f the function of the emulated device
     ///
-    void emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f);
+    /// @return SUCCESS if emulation becomes active
+    ///
+    int emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f);
 
     /// Enable
     ///

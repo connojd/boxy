@@ -102,10 +102,18 @@ void vmcall_visr_op_handler::emulate(vcpu *vcpu)
     bfdebug_nhex(0, "visr: emu dev", d);
     bfdebug_nhex(0, "visr: emu fun", f);
 
-    g_visr->emulate(vcpu, b, d, f);
+    vcpu->set_rax(g_visr->emulate(vcpu, b, d, f));
 }
 
-void vmcall_visr_op_handler::enable(vcpu *vcpu) {}
+void vmcall_visr_op_handler::enable(vcpu *vcpu)
+{
+    if (!m_enabled) {
+        g_visr->enable(vcpu);
+        m_enabled = true;
+    }
+
+    vcpu->set_rax(SUCCESS);
+}
 
 bool vmcall_visr_op_handler::dispatch(vcpu *vcpu)
 {

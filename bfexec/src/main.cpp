@@ -295,6 +295,10 @@ protected_main(const args_type &args)
             exit(EXIT_SUCCESS);
         }
 
+        if (args.count("emuen")) {
+            ctl->call_ioctl_enable();
+        }
+
         exit(EXIT_FAILURE);
     }
 

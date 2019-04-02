@@ -112,6 +112,12 @@ __visr_op__emulate(uint64_t bdf)
     return ret == 0 ? SUCCESS : FAILURE;
 }
 
+static inline status_t
+__visr_op__enable(void)
+{
+    status_t ret = _vmcall(__enum_visr_op__enable, 0, 0, 0);
+    return ret == 0 ? SUCCESS : FAILURE;
+}
 
 // -----------------------------------------------------------------------------
 // Uart Operations

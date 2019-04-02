@@ -58,3 +58,11 @@ ioctl::call_ioctl_emulate(uint64_t bdf)
         d->call_ioctl_emulate(bdf);
     }
 }
+
+void
+ioctl::call_ioctl_enable()
+{
+    if (auto d = dynamic_cast<ioctl_private *>(m_d.get())) {
+        d->call_ioctl_enable();
+    }
+}

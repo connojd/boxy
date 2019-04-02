@@ -62,6 +62,7 @@ private:
 private:
 
     vcpu *m_vcpu;
+    bool m_enabled{};
 
 public:
 

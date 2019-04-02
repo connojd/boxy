@@ -41,6 +41,7 @@ parse_args(int argc, char *argv[])
     ("bzimage", "Create a VM from a bzImage file")
     ("mcfg", "Map in the MCFG ACPI table")
     ("emu", "Emulate PCI device", value<std::string>(), "[bb:dd.f]")
+    ("emuen", "Enable PCI emulation")
     ("path", "The VM's path", value<std::string>(), "[path]")
     ("size", "The VM's total RAM", value<uint64_t>(), "[bytes]")
     ("initrd", "The VM's initrd path", value<std::string>(), "[path]")
@@ -64,8 +65,10 @@ parse_args(int argc, char *argv[])
         verbose = true;
     }
 
-    if (!args.count("bzimage") && !args.count("mcfg") && !args.count("emu")) {
-        throw std::runtime_error("must specify 'bzimage'");
+    if (!args.count("bzimage")) {
+        if (!args.count("mcfg") && !args.count("emu") && !args.count("emuen")) {
+            throw std::runtime_error("must specify 'bzimage'");
+        }
     }
 
     if (args.count("mcfg")) {

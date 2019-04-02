@@ -51,6 +51,7 @@ extern "C" {
 
 #define IOCTL_MAP_MCFG_CMD 0x01
 #define IOCTL_EMULATE_CMD 0x02
+#define IOCTL_ENABLE_CMD 0x03
 
 /* -------------------------------------------------------------------------- */
 /* Linux Interfaces                                                           */
@@ -60,6 +61,7 @@ extern "C" {
 
 #define IOCTL_MAP_MCFG _IO(VISR_MAGIC, IOCTL_MAP_MCFG_CMD)
 #define IOCTL_EMULATE _IOW(VISR_MAGIC, IOCTL_EMULATE_CMD, uint64_t)
+#define IOCTL_ENABLE _IO(VISR_MAGIC, IOCTL_ENABLE_CMD)
 
 #endif
 

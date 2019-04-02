@@ -85,7 +85,7 @@ void visr::init_cfg_space(vcpu *v, struct pci_dev *dev)
     expects((cf8_read_reg(cf8, 0x1) & 0x100000) != 0);
 
     // Only PCIe devices supported
-    const auto [pcie_reg, pcie_val] = find_cap(cf8, capid_pcie);
+    const auto [pcie_reg, unused] = find_cap(cf8, capid_pcie);
     expects(pcie_reg != 0);
 
     // PCIe implies MSI but check anyway for sanity
@@ -129,12 +129,11 @@ void visr::init_cfg_space(vcpu *v, struct pci_dev *dev)
     throw std::runtime_error("PCI dev not in any MCFG alloc entry");
 }
 
-void visr::emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f)
+int visr::emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f)
 {
     auto cf8 = bdf_to_cf8(b, d, f);
     if (this->is_emulating(cf8)) {
-        v->set_rax(SUCCESS);
-        return;
+        return SUCCESS;
     }
 
     auto dev = std::make_unique<struct pci_dev>(b, d, f);
@@ -143,7 +142,7 @@ void visr::emulate(vcpu *v, uint32_t b, uint32_t d, uint32_t f)
     std::lock_guard<std::mutex> lock(m_mutex);
     m_devs.emplace(std::make_pair(cf8, std::move(dev)));
 
-    v->set_rax(SUCCESS);
+    return SUCCESS;
 }
 
 void visr::enable(vcpu *vcpu)

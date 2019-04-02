@@ -123,6 +123,13 @@ public:
     ///
     void call_ioctl_emulate(uint64_t bdf);
 
+    /// Enable
+    ///
+    /// Enable emulation of all device previously registered through
+    /// call_ioctl_emulate.
+    ///
+    void call_ioctl_enable();
+
 private:
 
     std::unique_ptr<ioctl_private_base> m_d;

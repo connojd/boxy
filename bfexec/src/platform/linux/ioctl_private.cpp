@@ -106,3 +106,11 @@ ioctl_private::call_ioctl_emulate(uint64_t bdf) noexcept
         std::cerr << "[ERROR] ioctl failed: IOCTL_EMULATE\n";
     }
 }
+
+void
+ioctl_private::call_ioctl_enable() noexcept
+{
+    if (ioctl(visr_fd, IOCTL_ENABLE) < 0) {
+        std::cerr << "[ERROR] ioctl failed: IOCTL_ENABLE\n";
+    }
+}

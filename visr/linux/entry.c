@@ -91,6 +91,16 @@ static long ioctl_map_mcfg(void)
     return ret;
 }
 
+static long ioctl_enable(void)
+{
+    int ret = __visr_op__enable();
+    if (ret == FAILURE) {
+        BFDEBUG("visr: enable failed");
+    }
+
+    return ret;
+}
+
 static long
 visr_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -99,6 +109,8 @@ visr_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return ioctl_map_mcfg();
         case IOCTL_EMULATE:
             return ioctl_emulate(arg);
+        case IOCTL_ENABLE:
+            return ioctl_enable();
         default:
             return -EINVAL;
     }

@@ -35,6 +35,7 @@ public:
     void call_ioctl_destroy(domainid_t domainid) noexcept;
     void call_ioctl_map_mcfg() noexcept;
     void call_ioctl_emulate(uint64_t bdf) noexcept;
+    void call_ioctl_enable() noexcept;
 
 private:
 
